@@ -1,0 +1,8 @@
+# ──────────────────────────────────────────────────────
+#  Client-Server 4 Students — Python Dependencies
+# ──────────────────────────────────────────────────────
+#  PyQt6 is the only external dependency.
+#  Everything else uses the Python standard library.
+# ──────────────────────────────────────────────────────
+
+PyQt6>=6.6.0

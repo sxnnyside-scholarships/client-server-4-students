@@ -1,102 +1,249 @@
-# Python Client-Server App
+<p align="center">
+  <strong>Client-Server 4 Students</strong><br>
+  <em>A clean, minimal, FTP-like client-server for the classroom</em>
+</p>
 
-## Introduction
-
-This repository contains a simple **Python Client-Server** application that demonstrates the basic concepts of network communication. The app is designed for educational purposes, helping students understand how client-server architectures work and how data is exchanged over a network.
-
-## What is a Client-Server Model?
-
-In a **client-server** model, the **server** is a program that waits for client requests. The **client** is another program that sends a request to the server and receives a response. The server and client communicate over a network (such as the internet or a local network) using predefined protocols and port numbers.
-
-## Overview of This Project
-
-This project consists of two Python scripts:
-- **Server Script**: Listens for client connections, accepts messages, and responds.
-- **Client Script**: Connects to the server, sends a message, and receives a response.
-
-Both scripts use the `socket` library in Python to handle networking.
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.12%2B-blue?style=flat-square" alt="Python 3.12+">
+  <img src="https://img.shields.io/badge/GUI-PyQt6-green?style=flat-square" alt="PyQt6">
+  <img src="https://img.shields.io/badge/license-MIT-orange?style=flat-square" alt="MIT">
+  <img src="https://img.shields.io/badge/i18n-en%20%7C%20es-purple?style=flat-square" alt="EN & ES">
+</p>
 
 ---
 
-## How It Works
+## What Is This?
 
-1. **Server Script**:
-   - The server binds to a specified IP address and port number.
-   - It listens for incoming client connections.
-   - When a client connects, the server receives the client's message, processes it, and sends a response back to the client.
+**Client-Server 4 Students** is a basic, clean FTP-like server designed exclusively for academic purposes. It allows students to practically understand the fundamentals of the client-server paradigm: connections, requests, responses, simple authentication, and file handling. Its minimalist interface and intuitive configuration make it a perfect laboratory to experiment without fear of breaking anything critical. It is an accessible gateway to real-world networking, without the hardcore complexity that usually scares beginners.
 
-2. **Client Script**:
-   - The client connects to the server using its IP address and port number.
-   - It sends a message (request) to the server.
-   - The client then waits for a response from the server and prints it.
+> **⚠️ Academic use only** — This project is not designed for production or internet-facing deployments. Security and protocol simplicity were chosen to favour learning.
 
 ---
 
-## Setup and Running the App
+## Features
+
+| Feature | Description |
+|---|---|
+| **Launcher** | Choose Client or Server mode from a single entry point |
+| **File Transfer** | Upload and download files through a GUI |
+| **Directory Browsing** | Navigate folders on the server visually |
+| **Authentication** | Simple user/password system |
+| **Per-User Sandbox** | Each user has their own isolated file area |
+| **Two Themes** | Mint Light and Mint Dark, switchable at runtime |
+| **Two Languages** | English and Spanish, switchable at runtime |
+| **Cross-Platform** | Windows, macOS, Linux |
+
+---
+
+## Quick Start
 
 ### Prerequisites
-You need to have **Python 3.x** installed on your machine. No additional libraries are required as we are using Python's built-in `socket` library.
 
-### Steps to Run
+- **Python 3.12** or newer
+- **pip** (comes with Python)
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/HoujouSxnnyside/client-server-4-students.git
+### 1. Clone the Repository
 
-2. **Navigate to the directory**:
-    ```bash
-    cd python-client-server-app
+```bash
+git clone https://github.com/HoujouSxnnyside/client-server-4-students.git
+cd client-server-4-students
+```
 
-3. **Running the Server**: Open a terminal and run the server script:
-    ```bash
-    python server.py
-    
-The server will start and listen to incoming connections.
+### 2. Install Dependencies
 
-4. **Running the Client**: Open another terminal (or use a different machine) and run the client script:
-    ```bash
-    python client.py
+```bash
+pip install -r requirements.txt
+```
 
-The client will connect to the server and send a message. You should see a response from the server in the client terminal.
+> The only external dependency is **PyQt6**. Everything else uses the Python standard library.
 
-## Example Interaction
-Here is an example of how the server and client will interact:
+### 3. Run the Application
 
-### Server Output:
+```bash
+python main.py
+```
 
-- Server started and listening...
-- Client connected from ('127.0.0.1', 54321)
-- Received message: "Hello from the client!"
-- Sent response: "Message received: Hello from the client!"
+The **Launcher** window will appear. From there you can:
 
-### Client Output:
-- Connected to the server at 127.0.0.1:8080
-- Sent: Hello from the client!
-- Received: Message received: Hello from the client!
+- **Start as Server** — starts listening for connections.
+- **Start as Client** — connect to a running server.
 
-# Customization
-**IP Address**: By default, the server listens on localhost (127.0.0.1). If you want to make the server accessible from other machines in your network, change the IP address in the server.py file.
+### 4. Default Credentials
 
-**Port Number**: You can change the port number used for communication by modifying the server.py and client.py scripts. Make sure both scripts use the same port.
+| Username | Password |
+|---|---|
+| `student` | `student` |
+| `teacher` | `teacher` |
 
-# Learning Outcomes
+These accounts are created automatically on first run. You can add or remove users from the Server window.
 
-By following and running this project, you should learn:
+---
 
-1. How client-server communication works.
-2. How to use Python’s socket library for basic networking.
-3. How data is transmitted between clients and servers in a networked environment.
+## Project Structure
 
-# Expanding the Project
-Once you’re familiar with this basic client-server interaction, here are some ideas to expand the project:
+```
+client-server-4-students/
+├── main.py                        ← Entry point (run this!)
+├── requirements.txt
+├── config/
+│   └── settings.json              ← Human-readable settings
+├── src/
+│   ├── core/
+│   │   ├── config.py              ← Configuration manager
+│   │   ├── logger.py              ← Logging utilities
+│   │   └── protocol.py            ← Communication protocol
+│   ├── network/
+│   │   ├── server_backend.py      ← Server networking engine
+│   │   └── client_backend.py      ← Client networking engine
+│   ├── storage/
+│   │   ├── auth.py                ← User authentication
+│   │   └── file_manager.py        ← File sandbox management
+│   ├── localization/
+│   │   ├── locale_manager.py      ← i18n engine
+│   │   ├── en.json                ← English strings
+│   │   └── es.json                ← Spanish strings
+│   └── ui/
+│       ├── launcher.py            ← Launcher window
+│       ├── server_window.py       ← Server GUI
+│       ├── client_window.py       ← Client GUI
+│       ├── widgets/
+│       │   └── common.py          ← Shared helpers
+│       └── themes/
+│           ├── theme_manager.py   ← Theme engine
+│           ├── mint_light.qss     ← Light theme
+│           └── mint_dark.qss      ← Dark theme
+├── server_files/                  ← Per-user file storage
+├── logs/                          ← Server/client logs
+├── docs/
+│   ├── USER_MANUAL.md             ← English manual
+│   └── MANUAL_DE_USUARIO.md       ← Spanish manual
+├── LICENSE                        ← MIT License
+├── CONTRIBUTING.md
+├── CODE_OF_CONDUCT.md
+└── SECURITY.md
+```
 
-- Implement multithreading on the server to handle multiple clients simultaneously.
-- Add encryption to the data being transmitted to improve security.
-- Explore HTTP protocols by building a simple web server and client.
-- Handle larger data such as file transfers between the client and server.
+---
 
-# Contributing
-Feel free to fork this repository and submit pull requests if you have suggestions or improvements!
+## Architecture Overview
 
-# License
-This project is licensed under the MIT License.
+```
+┌────────────┐         ┌────────────────────────────────┐
+│  Launcher   │────────▶│  Client Window   OR   Server   │
+│  (PyQt6)    │◀────────│  Window (PyQt6)                │
+└────────────┘         └───────────┬────────────────────┘
+                                   │
+                        ┌──────────▼──────────┐
+                        │   Network Backend    │
+                        │  (TCP + Protocol)    │
+                        └──────────┬──────────┘
+                                   │
+              ┌────────────────────┼────────────────────┐
+              │                    │                     │
+     ┌────────▼─────┐   ┌─────────▼──────┐   ┌─────────▼──────┐
+     │   Storage     │   │  Localization   │   │    Theming      │
+     │ (Auth + Files)│   │  (JSON i18n)    │   │  (QSS Sheets)   │
+     └──────────────┘   └────────────────┘   └────────────────┘
+```
+
+- **Launcher** is the single entry point. It creates the Client or Server window on demand.
+- **Network backends** run socket operations in background threads and communicate with the UI via Qt signals.
+- **Protocol** is a simple text-line format: `COMMAND|param1|param2\n`.
+- **Storage** uses plain JSON files — human-readable and easy to inspect.
+- **Themes** and **Localization** are hot-swappable at runtime.
+
+---
+
+## Communication Protocol
+
+All messages are single UTF-8 text lines terminated by `\n`.
+Fields are separated by `|`.
+
+| Direction | Command | Format |
+|---|---|---|
+| Client → Server | Authenticate | `AUTH\|username\|password` |
+| Client → Server | List files | `LIST\|subpath` |
+| Client → Server | Upload file | `UPLOAD\|filename\|size` → raw bytes |
+| Client → Server | Download file | `DOWNLOAD\|filename` |
+| Client → Server | Create folder | `MKDIR\|dirname` |
+| Client → Server | Disconnect | `QUIT` |
+
+Server replies follow: `OK|data` or `ERROR|reason`.
+
+---
+
+## Configuration
+
+All settings live in `config/settings.json` and are auto-created on first run:
+
+```json
+{
+    "locale": "en",
+    "theme": "mint_light",
+    "server": {
+        "host": "0.0.0.0",
+        "port": 2121,
+        "max_connections": 5
+    },
+    "client": {
+        "default_host": "localhost",
+        "default_port": 2121
+    }
+}
+```
+
+You can edit this file by hand or through the GUI.
+
+---
+
+## Learning Outcomes
+
+By exploring and running this project, students will learn:
+
+1. How **client-server communication** works over TCP sockets.
+2. How to build a **graphical interface** with PyQt6.
+3. How a simple **text-based protocol** structures requests and responses.
+4. How **authentication** and **file sandboxing** provide basic security.
+5. How **i18n** and **theming** make software accessible.
+6. How a real open-source project is organised (README, LICENSE, CONTRIBUTING, etc.).
+
+---
+
+## Dependencies
+
+| Package | Why |
+|---|---|
+| **PyQt6** | Cross-platform GUI framework with mature widget set and QSS styling |
+
+That's it. One dependency. Everything else is Python standard library.
+
+---
+
+## License
+
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+
+**Why MIT?** It's the most permissive and beginner-friendly open-source license. Students and teachers can freely use, modify, and share this project without legal concerns.
+
+---
+
+## Documentation
+
+- [User Manual (English)](docs/USER_MANUAL.md)
+- [Manual de Usuario (Español)](docs/MANUAL_DE_USUARIO.md)
+- [Contributing Guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+
+---
+
+## Contact
+
+- **General support:** support.sxnnyside@sxnnysideproject.com
+- **Security issues:** security.sxnnyside@sxnnysideproject.com
+
+---
+
+<p align="center">
+  <em>Built with ❤️ for students and teachers everywhere.</em>
+</p>

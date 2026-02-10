@@ -1,0 +1,29 @@
+2# ── Python ────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# ── Virtual environments ─────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Runtime data (auto-generated) ────────────────────
+config/users.json
+server_files/*
+!server_files/.gitkeep
+logs/*.log
+
+# ── OS / editor ──────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
