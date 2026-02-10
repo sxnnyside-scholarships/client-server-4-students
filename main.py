@@ -9,8 +9,13 @@ The Launcher window will open, allowing you to choose
 between Client mode and Server mode.
 """
 
+import os
 import sys
 from pathlib import Path
+from PyQt6.QtCore import QLibraryInfo
+
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = \
+    QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
 
 from PyQt6.QtWidgets import QApplication
 
