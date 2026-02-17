@@ -19,6 +19,7 @@ from PyQt6.QtWidgets import (
 from src.core.config import ConfigManager
 from src.localization.locale_manager import LocaleManager
 from src.ui.themes.theme_manager import ThemeManager
+from src.ui.widgets.common import BrandingFooter
 
 
 class LauncherWindow(QWidget):
@@ -121,6 +122,10 @@ class LauncherWindow(QWidget):
         self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(self.version_label)
 
+        # Branding footer
+        self.footer = BrandingFooter()
+        root.addWidget(self.footer)
+
     # ── signals ───────────────────────────────────────────────
 
     def _wire_signals(self):
@@ -141,6 +146,8 @@ class LauncherWindow(QWidget):
         self.lang_label.setText(t("language"))
         self.theme_label.setText(t("theme"))
         self.version_label.setText(t("version_label"))
+
+        self.footer.update_text(t("footer_prefix"), t("footer_link"))
 
         # Rebuild theme combo with translated names
         current = self.config.get("theme", "mint_light")

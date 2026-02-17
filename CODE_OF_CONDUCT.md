@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-We as members, contributors, and maintainers pledge to make participation in **Client-Server 4 Students** a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
+We as members, contributors, and maintainers pledge to make participation in **Client-Server 4 Students (C4SS)**, a project by **Sxnnyside Scholarships**, a harassment-free experience for everyone, regardless of age, body size, disability, ethnicity, sex characteristics, gender identity and expression, level of experience, education, socio-economic status, nationality, personal appearance, race, religion, or sexual identity and orientation.
 
 ## Our Standards
 
@@ -35,10 +35,14 @@ This Code of Conduct applies within all project spaces (GitHub, discussions, pul
 
 Instances of abusive, harassing, or otherwise unacceptable behaviour may be reported to the project team at:
 
-**support.sxnnyside@sxnnysideproject.com**
+**[support.sxnnyside@sxnnysideproject.com](mailto:support.sxnnyside@sxnnysideproject.com)**
 
 All complaints will be reviewed and investigated and will result in a response that is deemed necessary and appropriate.
 
 ## Attribution
 
 This Code of Conduct is adapted from the [Contributor Covenant](https://www.contributor-covenant.org), version 2.1.
+
+---
+
+<sub>© 2026 Sxnnyside Scholarships · [Sxnnyside Project](https://www.sxnnysideproject.com)</sub>

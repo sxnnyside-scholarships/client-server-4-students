@@ -1,6 +1,6 @@
-# Contributing to Client-Server 4 Students
+# Contributing to Client-Server 4 Students (C4SS)
 
-First off — **thank you for wanting to contribute!** This project exists to help students learn, and every improvement, however small, makes that mission easier.
+First off — **thank you for wanting to contribute!** This project is developed by **Sxnnyside Scholarships** to help students learn, and every improvement, however small, makes that mission easier.
 
 ---
 
@@ -77,6 +77,8 @@ All participants are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md
 
 If you're not sure whether something is worth contributing, open an issue and ask — we'd rather help you get started than miss a good idea.
 
-**Contact:** support.sxnnyside@sxnnysideproject.com
+**Contact:** [support.sxnnyside@sxnnysideproject.com](mailto:support.sxnnyside@sxnnysideproject.com)
+
+**Website:** [https://www.sxnnysideproject.com](https://www.sxnnysideproject.com)
 
 Happy coding!

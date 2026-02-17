@@ -34,6 +34,7 @@ from src.network.server_backend import ServerBackend
 from src.storage.auth import AuthManager
 from src.storage.file_manager import FileManager
 from src.ui.themes.theme_manager import ThemeManager
+from src.ui.widgets.common import BrandingFooter
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
@@ -187,6 +188,10 @@ class ServerWindow(QMainWindow):
 
         root.addWidget(splitter)
 
+        # Branding footer
+        self.footer = BrandingFooter()
+        root.addWidget(self.footer)
+
         # Status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
@@ -228,6 +233,8 @@ class ServerWindow(QMainWindow):
             if self.backend.is_running
             else t("server_stopped")
         )
+
+        self.footer.update_text(t("footer_prefix"), t("footer_link"))
 
     # ── server lifecycle ──────────────────────────────────────
 

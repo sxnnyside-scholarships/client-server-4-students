@@ -76,5 +76,8 @@
     "no": "No",
     "cancel": "Cancelar",
     "ok": "Aceptar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+
+    "footer_prefix": "Desarrollado por Sxnnyside Scholarships",
+    "footer_link": "Sxnnyside Project"
 }

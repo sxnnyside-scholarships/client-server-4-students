@@ -32,7 +32,7 @@ from src.core.config import ConfigManager
 from src.localization.locale_manager import LocaleManager
 from src.network.client_backend import ClientBackend
 from src.ui.themes.theme_manager import ThemeManager
-from src.ui.widgets.common import format_file_size
+from src.ui.widgets.common import BrandingFooter, format_file_size
 
 
 class ClientWindow(QMainWindow):
@@ -193,6 +193,10 @@ class ClientWindow(QMainWindow):
         self.progress.setFixedHeight(4)
         root.addWidget(self.progress)
 
+        # ── branding footer ──────────────────────────────────
+        self.footer = BrandingFooter()
+        root.addWidget(self.footer)
+
         # ── status bar ───────────────────────────────────────
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
@@ -241,6 +245,8 @@ class ClientWindow(QMainWindow):
             [t("name_col"), t("size_col"), t("type_col")]
         )
         self._update_path_label()
+
+        self.footer.update_text(t("footer_prefix"), t("footer_link"))
 
     # ── connection ────────────────────────────────────────────
 

@@ -1,4 +1,6 @@
-# Manual de Usuario — Client-Server 4 Students
+# Manual de Usuario — Client-Server 4 Students (C4SS)
+
+> **v1.0.0** — Un proyecto de [Sxnnyside Scholarships](https://www.sxnnysideproject.com)
 
 ¡Bienvenido! Este manual te guiará paso a paso por la instalación, configuración y uso de la aplicación. No te preocupes si eres nuevo en redes — para eso mismo existe este proyecto.
 
@@ -279,4 +281,8 @@ R: Usa SHA-256 con una sal aleatoria — suficiente para un aula, pero no para p
 
 ---
 
-**¿Necesitas más ayuda?** Contáctanos en: **support.sxnnyside@sxnnysideproject.com**
+**¿Necesitas más ayuda?** Contáctanos en: **[support.sxnnyside@sxnnysideproject.com](mailto:support.sxnnyside@sxnnysideproject.com)**
+
+---
+
+<sub>© 2026 Sxnnyside Scholarships · [Sxnnyside Project](https://www.sxnnysideproject.com)</sub>

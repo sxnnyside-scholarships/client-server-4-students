@@ -1,20 +1,28 @@
 <p align="center">
-  <strong>Client-Server 4 Students</strong><br>
-  <em>A clean, minimal, FTP-like client-server for the classroom</em>
+  <strong>Client-Server 4 Students (C4SS)</strong><br>
+  <em>A clean, minimal, FTP-like client-server for the classroom</em><br>
+  <sub>v1.0.0 — First Stable Release</sub>
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/badge/release-v1.0.0-brightgreen?style=flat-square" alt="v1.0.0">
   <img src="https://img.shields.io/badge/python-3.12%2B-blue?style=flat-square" alt="Python 3.12+">
   <img src="https://img.shields.io/badge/GUI-PyQt6-green?style=flat-square" alt="PyQt6">
   <img src="https://img.shields.io/badge/license-MIT-orange?style=flat-square" alt="MIT">
   <img src="https://img.shields.io/badge/i18n-en%20%7C%20es-purple?style=flat-square" alt="EN & ES">
 </p>
 
+<p align="center">
+  A project by <strong><a href="https://www.sxnnysideproject.com">Sxnnyside Scholarships</a></strong>
+</p>
+
 ---
 
 ## What Is This?
 
-**Client-Server 4 Students** is a basic, clean FTP-like server designed exclusively for academic purposes. It allows students to practically understand the fundamentals of the client-server paradigm: connections, requests, responses, simple authentication, and file handling. Its minimalist interface and intuitive configuration make it a perfect laboratory to experiment without fear of breaking anything critical. It is an accessible gateway to real-world networking, without the hardcore complexity that usually scares beginners.
+**Client-Server 4 Students (C4SS)** is a basic, clean FTP-like server designed exclusively for academic purposes. It allows students to practically understand the fundamentals of the client-server paradigm: connections, requests, responses, simple authentication, and file handling. Its minimalist interface and intuitive configuration make it a perfect laboratory to experiment without fear of breaking anything critical. It is an accessible gateway to real-world networking, without the hardcore complexity that usually scares beginners.
+
+This project is developed and maintained by **Sxnnyside Scholarships** as part of the [Sxnnyside Project](https://www.sxnnysideproject.com).
 
 > **⚠️ Academic use only** — This project is not designed for production or internet-facing deployments. Security and protocol simplicity were chosen to favour learning.
 
@@ -221,7 +229,7 @@ That's it. One dependency. Everything else is Python standard library.
 
 ## License
 
-This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
+Copyright © 2026 **Sxnnyside Scholarships**. This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details.
 
 **Why MIT?** It's the most permissive and beginner-friendly open-source license. Students and teachers can freely use, modify, and share this project without legal concerns.
 
@@ -231,6 +239,7 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 
 - [User Manual (English)](docs/USER_MANUAL.md)
 - [Manual de Usuario (Español)](docs/MANUAL_DE_USUARIO.md)
+- [Changelog](CHANGELOG.md)
 - [Contributing Guide](CONTRIBUTING.md)
 - [Code of Conduct](CODE_OF_CONDUCT.md)
 - [Security Policy](SECURITY.md)
@@ -239,11 +248,14 @@ This project is licensed under the **MIT License** — see [LICENSE](LICENSE) fo
 
 ## Contact
 
-- **General support:** support.sxnnyside@sxnnysideproject.com
-- **Security issues:** security.sxnnyside@sxnnysideproject.com
+- **Website:** [https://www.sxnnysideproject.com](https://www.sxnnysideproject.com)
+- **General support:** [support.sxnnyside@sxnnysideproject.com](mailto:support.sxnnyside@sxnnysideproject.com)
+- **Security issues:** [security.sxnnyside@sxnnysideproject.com](mailto:security.sxnnyside@sxnnysideproject.com)
+- **Repository:** [https://github.com/HoujouSxnnyside/client-server-4-students](https://github.com/HoujouSxnnyside/client-server-4-students)
 
 ---
 
 <p align="center">
-  <em>Built with ❤️ for students and teachers everywhere.</em>
+  <em>Built with ❤️ for students and teachers everywhere.</em><br>
+  <sub>© 2026 Sxnnyside Scholarships · <a href="https://www.sxnnysideproject.com">Sxnnyside Project</a></sub>
 </p>
