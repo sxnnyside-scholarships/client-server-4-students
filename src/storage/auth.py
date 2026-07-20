@@ -1,14 +1,28 @@
 """
-Authentication Manager
-──────────────────────
-Handles user credentials: hashing, storage, and verification.
+Module: auth.py
+───────────────
+Purpose: Handles user credentials, password hashing, and storage.
 
-Passwords are hashed with **SHA-256 + per-user random salt**.
+Architectural Role:
+Acts as the identity provider for the server. It decouples the network handlers 
+from the underlying credential storage format, allowing the server to authenticate 
+connections dynamically.
 
-.. warning::
+Responsibilities:
+- Hash plaintext passwords securely using SHA-256 and per-user salts.
+- Persist credential hashes to a JSON file.
+- Verify inbound authentication requests.
 
-   This is intentionally simple for educational purposes.
-   A production system should use *bcrypt* or *argon2*.
+Expected Collaborators:
+- `src.network.server.handlers.auth` (consumes `verify`)
+- `src.ui.server_window` (consumes user management methods)
+
+Important Implementation Notes:
+# Educational Note: Hashing Algorithms
+# This implementation uses SHA-256 + Salt. In a real-world production system, this is 
+# considered insecure because SHA-256 is too fast, making it vulnerable to brute force 
+# attacks. A production system should use bcrypt or argon2. We use SHA-256 here because 
+# it ships natively with Python, avoiding external dependencies for students.
 """
 
 import hashlib
@@ -16,9 +30,25 @@ import json
 import secrets
 from pathlib import Path
 
+from src.network.security import is_valid_username
+
 
 class AuthManager:
-    """JSON-file-backed user authentication store."""
+    """
+    JSON-file-backed user authentication store.
+
+    Why it exists:
+    Provides a persistent identity registry so that students do not have to 
+    re-create accounts every time they restart the server.
+
+    Responsibilities:
+    - Verifying usernames and passwords against stored hashes.
+    - Providing CRUD operations for user accounts.
+
+    Non-Responsibilities (Anti-Goals):
+    - It does NOT authorize file access (delegated to `FileManager`).
+    - It does NOT enforce rate-limiting (delegated to `SecurityContext`).
+    """
 
     def __init__(self, users_file: str | Path):
         self.path = Path(users_file)
@@ -64,7 +94,22 @@ class AuthManager:
     # ── public API ────────────────────────────────────────────
 
     def verify(self, username: str, password: str) -> bool:
-        """Return *True* if the credentials are valid."""
+        """
+        Validates a plaintext password against the stored hash for a given user.
+
+        Args:
+            username: The account name to verify.
+            password: The plaintext password provided by the client.
+
+        Returns:
+            True if the credentials match, False otherwise.
+
+        Side Effects:
+            None.
+
+        Failure Behavior:
+            Returns False if the username does not exist.
+        """
         if username not in self.users:
             return False
         stored = self.users[username]
@@ -72,7 +117,26 @@ class AuthManager:
         return digest == stored["hash"]
 
     def add_user(self, username: str, password: str) -> bool:
-        """Add a new user.  Returns *False* if the name is taken."""
+        """
+        Creates a new user account with a salted password hash.
+
+        Args:
+            username: The desired username (must pass validation).
+            password: The plaintext password to hash and store.
+
+        Returns:
+            True if the user was successfully created, False otherwise.
+
+        Side Effects:
+            Mutates the internal user dictionary.
+            Writes the updated dictionary to the JSON file on disk.
+
+        Failure Behavior:
+            Returns False if the username contains illegal characters (e.g., path traversal markers).
+            Returns False if the username already exists.
+        """
+        if not is_valid_username(username):
+            return False
         if username in self.users:
             return False
         digest, salt = self._hash_password(password)
@@ -81,7 +145,22 @@ class AuthManager:
         return True
 
     def remove_user(self, username: str) -> bool:
-        """Remove a user.  Returns *False* if not found."""
+        """
+        Deletes a user account from the registry.
+
+        Args:
+            username: The account to delete.
+
+        Returns:
+            True if the user was deleted, False if they did not exist.
+
+        Side Effects:
+            Mutates the internal user dictionary.
+            Writes the updated dictionary to the JSON file on disk.
+
+        Failure Behavior:
+            Returns False if the username is not found.
+        """
         if username not in self.users:
             return False
         del self.users[username]
@@ -89,11 +168,42 @@ class AuthManager:
         return True
 
     def list_users(self) -> list[str]:
-        """Return all registered usernames."""
+        """
+        Retrieves a list of all registered usernames.
+
+        Args:
+            None.
+
+        Returns:
+            A list of string usernames.
+
+        Side Effects:
+            None.
+
+        Failure Behavior:
+            None.
+        """
         return list(self.users.keys())
 
     def change_password(self, username: str, new_password: str) -> bool:
-        """Change a user's password.  Returns *False* if user unknown."""
+        """
+        Updates the password for an existing user account.
+
+        Args:
+            username: The account to modify.
+            new_password: The new plaintext password.
+
+        Returns:
+            True if the password was updated, False otherwise.
+
+        Side Effects:
+            Generates a new cryptographic salt.
+            Mutates the internal user dictionary.
+            Writes the updated dictionary to the JSON file on disk.
+
+        Failure Behavior:
+            Returns False if the user does not exist.
+        """
         if username not in self.users:
             return False
         digest, salt = self._hash_password(new_password)

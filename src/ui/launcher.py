@@ -1,29 +1,59 @@
 """
-Launcher Window
-───────────────
-The main entry point of the application.
-Lets the user pick Client or Server mode, language, and theme.
+Module: launcher.py
+───────────────────
+Purpose: Provides the initial entry point window for the CS4S application.
+
+Architectural Role:
+Acts as the central Dependency Injection hub and Application Bootstrapper. 
+It instantiates the shared singletons (Locale, Theme, Runtime) and injects 
+them into either the Client or Server window based on user selection.
+
+Responsibilities:
+- Render the start screen (Client vs. Server choice).
+- Allow the user to change global language and theme settings before booting an engine.
+- Instantiate and launch the selected child window, hiding itself until the child closes.
+
+Expected Collaborators:
+- `src.main` (invokes this class).
+- `src.ui.client_window` (instantiated here).
+- `src.ui.server_window` (instantiated here).
 """
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
     QApplication,
-    QComboBox,
     QHBoxLayout,
     QLabel,
-    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from src.core.config import ConfigManager
 from src.localization.locale_manager import LocaleManager
+from src.ui.icons.icon_provider import get_icon
 from src.ui.themes.theme_manager import ThemeManager
+from src.ui.themes.tokens import icon_color
 from src.ui.widgets.common import BrandingFooter
+from src.ui.widgets.atoms import MintModeCard, MintDropdown
 
 
 class LauncherWindow(QWidget):
-    """Start screen — choose Client or Server."""
+    """
+    Start screen and Dependency Injection container.
+
+    Why it exists:
+    Because CS4S bundles both the client and server into a single executable, 
+    there needs to be an initial routing screen. The launcher serves this purpose 
+    while also acting as the top-level owner of global configurations.
+
+    Responsibilities:
+    - Bootstrapping the `ClientBackend` or `ServerBackend` with necessary dependencies.
+    - Swapping the active `QMainWindow` while keeping the Qt Event Loop alive.
+
+    Non-Responsibilities (Anti-Goals):
+    - It does NOT start any network sockets itself.
+    - It does NOT parse command-line arguments.
+    """
 
     def __init__(
         self,
@@ -31,15 +61,18 @@ class LauncherWindow(QWidget):
         locale: LocaleManager,
         themes: ThemeManager,
         app: QApplication,
+        runtime = None,
     ):
         super().__init__()
         self.config = config
         self.locale = locale
         self.themes = themes
         self.app = app
+        self.runtime = runtime
+        self._theme_name = self.config.get("theme", "mint_light")
         self._child_window = None
 
-        self.setFixedSize(460, 510)
+        self.setFixedSize(520, 430)
         self._build_ui()
         self._wire_signals()
         self.retranslate()
@@ -50,81 +83,113 @@ class LauncherWindow(QWidget):
 
     def _build_ui(self):
         root = QVBoxLayout(self)
-        root.setSpacing(12)
-        root.setContentsMargins(44, 32, 44, 28)
+        root.setSpacing(16)
+        root.setContentsMargins(32, 24, 32, 20)
 
-        # Title
+        # ── header: title + subtitle, compact ─────────────────
         self.title_label = QLabel()
         self.title_label.setObjectName("titleLabel")
         self.title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(self.title_label)
 
-        # Subtitle
         self.subtitle_label = QLabel()
         self.subtitle_label.setObjectName("subtitleLabel")
         self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(self.subtitle_label)
 
-        root.addSpacing(24)
+        # ── mode selection: two compact cards, side by side ───
+        neutral = icon_color(self._theme_name)
 
-        # Action buttons
-        self.client_btn = QPushButton()
-        self.client_btn.setObjectName("primaryButton")
-        self.client_btn.setMinimumHeight(50)
-        self.client_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        root.addWidget(self.client_btn)
+        cards_row = QHBoxLayout()
+        cards_row.setSpacing(12)
 
-        self.server_btn = QPushButton()
-        self.server_btn.setObjectName("primaryButton")
-        self.server_btn.setMinimumHeight(50)
-        self.server_btn.setCursor(Qt.CursorShape.PointingHandCursor)
-        root.addWidget(self.server_btn)
+        self.client_btn = self._make_mode_card("connect", neutral)
+        self.server_btn = self._make_mode_card("play", neutral)
+        cards_row.addWidget(self.client_btn, 1)
+        cards_row.addWidget(self.server_btn, 1)
+        root.addLayout(cards_row)
 
-        root.addSpacing(24)
+        self.client_desc_label = QLabel()
+        self.client_desc_label.setObjectName("cardDescriptionLabel")
+        self.client_desc_label.setWordWrap(True)
+        self.client_desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # ── settings column ──────────────────────────────────
-        settings = QVBoxLayout()
-        settings.setSpacing(4)
+        self.server_desc_label = QLabel()
+        self.server_desc_label.setObjectName("cardDescriptionLabel")
+        self.server_desc_label.setWordWrap(True)
+        self.server_desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        desc_row = QHBoxLayout()
+        desc_row.setSpacing(12)
+        desc_row.addWidget(self.client_desc_label, 1)
+        desc_row.addWidget(self.server_desc_label, 1)
+        root.addLayout(desc_row)
+
+        root.addStretch()
+
+        # ── settings: inline row, not a tall stacked column ───
+        settings_row = QHBoxLayout()
+        settings_row.setSpacing(20)
 
         self.lang_label = QLabel()
         self.lang_label.setObjectName("settingsLabel")
-        self.lang_combo = QComboBox()
-        self.lang_combo.setMinimumWidth(220)
-        for code, name in LocaleManager.SUPPORTED_LOCALES.items():
-            self.lang_combo.addItem(name, code)
-        idx = self.lang_combo.findData(self.config.get("locale", "en"))
-        if idx >= 0:
-            self.lang_combo.setCurrentIndex(idx)
+        self.lang_combo = MintDropdown(self._theme_name)
+        # Assuming items will be added later when populated
+
+        lang_col = QVBoxLayout()
+        lang_col.setSpacing(2)
+        lang_col.addWidget(self.lang_label)
+        lang_col.addWidget(self.lang_combo)
 
         self.theme_label = QLabel()
         self.theme_label.setObjectName("settingsLabel")
-        self.theme_combo = QComboBox()
-        self.theme_combo.setMinimumWidth(220)
-        # Items populated in retranslate() so labels are localised
+        self.theme_combo = MintDropdown(self._theme_name)
 
-        settings.addWidget(self.lang_label)
-        settings.addWidget(self.lang_combo)
-        settings.addSpacing(12)
-        settings.addWidget(self.theme_label)
-        settings.addWidget(self.theme_combo)
+        theme_col = QVBoxLayout()
+        theme_col.setSpacing(2)
+        theme_col.addWidget(self.theme_label)
+        theme_col.addWidget(self.theme_combo)
 
-        settings_wrapper = QHBoxLayout()
-        settings_wrapper.addStretch()
-        settings_wrapper.addLayout(settings)
-        settings_wrapper.addStretch()
+        settings_row.addLayout(lang_col, 1)
+        settings_row.addLayout(theme_col, 1)
+        root.addLayout(settings_row)
 
-        root.addLayout(settings_wrapper)
-        root.addStretch()
-
-        # Version
+        # ── footer: version + attribution on one compact line ─
         self.version_label = QLabel()
         self.version_label.setObjectName("versionLabel")
         self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         root.addWidget(self.version_label)
 
-        # Branding footer
         self.footer = BrandingFooter()
         root.addWidget(self.footer)
+
+    def _make_mode_card(self, icon_name: str, color: str) -> MintModeCard:
+        """
+        Builds one of the two Launcher mode-selection cards (Client/Server).
+
+        Args:
+            icon_name: The MintPy icon to display above the card's label.
+            color: The icon tint color for the current theme.
+
+        Returns:
+            A configured `QToolButton` styled as a `modeCard` (see the QSS
+            `QToolButton#modeCard` rules) with the icon stacked above the
+            text — a compact card, not a full-width bar.
+
+        Side Effects:
+            None.
+
+        Failure Behavior:
+            None.
+        """
+        btn = MintModeCard(theme_name=self._theme_name)
+        btn.setObjectName("modeCard")
+        btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
+        btn.setIcon(get_icon(icon_name, color))
+        btn.setIconSize(QSize(28, 28))
+        btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn.setMinimumHeight(88)
+        return btn
 
     # ── signals ───────────────────────────────────────────────
 
@@ -142,12 +207,16 @@ class LauncherWindow(QWidget):
         self.title_label.setText(t("app_title"))
         self.subtitle_label.setText(t("welcome"))
         self.client_btn.setText(t("start_client"))
+        self.client_btn.setToolTip(t("tooltip_connect"))
+        self.client_desc_label.setText(t("start_client_desc"))
         self.server_btn.setText(t("start_server"))
+        self.server_btn.setToolTip(t("tooltip_start_server"))
+        self.server_desc_label.setText(t("start_server_desc"))
         self.lang_label.setText(t("language"))
         self.theme_label.setText(t("theme"))
         self.version_label.setText(t("version_label"))
 
-        self.footer.update_text(t("footer_prefix"), t("footer_link"))
+        self.footer.update_text(t("footer_prefix"))
 
         # Rebuild theme combo with translated names
         current = self.config.get("theme", "mint_light")
@@ -159,6 +228,21 @@ class LauncherWindow(QWidget):
         if idx >= 0:
             self.theme_combo.setCurrentIndex(idx)
         self.theme_combo.blockSignals(False)
+        
+        # Rebuild lang combo
+        self.lang_combo.blockSignals(True)
+        self.lang_combo.clear()
+        
+        from src.localization.locale_manager import LocaleManager
+        current_lang = self.locale.current_locale
+        idx = 0
+        for i, (code, name) in enumerate(LocaleManager.SUPPORTED_LOCALES.items()):
+            self.lang_combo.addItem(name, code)
+            if code == current_lang:
+                idx = i
+        
+        self.lang_combo.setCurrentIndex(idx)
+        self.lang_combo.blockSignals(False)
 
     # ── slots ─────────────────────────────────────────────────
 
@@ -176,23 +260,33 @@ class LauncherWindow(QWidget):
 
     def _open_client(self):
         from src.ui.client_window import ClientWindow
+        from src.network.client_backend import ClientBackend
+        
+        backend = ClientBackend()
 
         self.hide()
         self._child_window = ClientWindow(
-            self.config, self.locale, self.themes, self.app
+            self.config, self.locale, self.themes, self.app, backend=backend, runtime=self.runtime
         )
         self._child_window.closed.connect(self._on_child_closed)
-        self._child_window.show()
+        self._child_window.showMaximized()
 
     def _open_server(self):
         from src.ui.server_window import ServerWindow
+        from src.network.server_backend import ServerBackend
+        from src.storage.auth import AuthManager
+        from src.storage.file_manager import FileManager
+
+        auth = AuthManager(self.runtime.config_dir / "users.json")
+        files = FileManager(self.runtime.sandboxes_dir)
+        backend = ServerBackend(auth, files, config=self.config)
 
         self.hide()
         self._child_window = ServerWindow(
-            self.config, self.locale, self.themes, self.app
+            self.config, self.locale, self.themes, self.app, auth=auth, files=files, backend=backend, runtime=self.runtime
         )
         self._child_window.closed.connect(self._on_child_closed)
-        self._child_window.show()
+        self._child_window.showMaximized()
 
     def _on_child_closed(self):
         self._child_window = None

@@ -1,8 +1,24 @@
 """
-Logger Utilities
-────────────────
-Provides a simple, consistent logging setup for both client and server.
-Logs are written to rotating daily files **and** the console.
+Module: logger.py
+─────────────────
+Purpose: Provides a simple, consistent logging setup for both the client and server.
+
+Architectural Role:
+Standardizes telemetry and debugging output across the application. By centralizing 
+logger creation, it ensures that logs are uniformly formatted and safely rotated.
+
+Responsibilities:
+- Create Python standard library `logging.Logger` instances.
+- Attach console and daily-rotating file handlers.
+- Prevent duplicate handler registration.
+
+Expected Collaborators:
+- Virtually every file in the repository (calls `setup_logger`).
+- `src.core.runtime` (provides the directory path for log files).
+
+Important Implementation Notes:
+It is safe to call `setup_logger` multiple times for the same module name; it detects 
+existing handlers and avoids duplicating output streams.
 """
 
 import logging
@@ -15,15 +31,24 @@ def setup_logger(
     log_dir: str | Path | None = None,
     level: int = logging.INFO,
 ) -> logging.Logger:
-    """Create and configure a logger.
+    """
+    Creates and configures a standardized logger instance.
 
     Args:
-        name:    Logger name (``"server"`` or ``"client"``).
-        log_dir: Directory for log files.  Console-only if *None*.
-        level:   Minimum logging level (default ``INFO``).
+        name: The string identifier for the logger (e.g., "server" or "client").
+        log_dir: The directory where log files should be written. If None, 
+                 only console logging is enabled.
+        level: The minimum severity level to log (defaults to logging.INFO).
 
     Returns:
-        A ready-to-use :class:`logging.Logger`.
+        A fully configured `logging.Logger` instance.
+
+    Side Effects:
+        Creates a new log file on the disk if `log_dir` is provided.
+        Modifies the global state of the Python `logging` module.
+
+    Failure Behavior:
+        Raises `OSError` if the `log_dir` cannot be created due to permissions.
     """
     logger = logging.getLogger(name)
     logger.setLevel(level)

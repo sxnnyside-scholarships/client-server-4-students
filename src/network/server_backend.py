@@ -1,290 +1,226 @@
 """
-Server Backend
-──────────────
-Networking engine for the server side.
+Module: server_backend.py
+─────────────────────────
+Purpose: Networking engine for the server side.
 
-Listens for incoming connections and spawns a thread per client.
-Qt signals relay events to the GUI in a thread-safe way.
+Architectural Role:
+Acts as a Facade connecting the core server networking engines (`engine.py`, `dispatcher.py`) 
+to the PyQt6 event loop. It translates pure Python callbacks into thread-safe Qt signals 
+that the UI can observe.
+
+Responsibilities:
+- Register all command handlers (`AuthCommandHandler`, `FileOpsHandler`, `TransferHandler`) 
+  with the `CommandDispatcher`.
+- Instantiate the `ServerNetworkEngine`.
+- Wire engine callback hooks to `pyqtSignal` emissions.
+- Expose Lab View / Chaos mode configurations (latency, packet loss) to the UI.
+
+Expected Collaborators:
+- `src.ui.server_window` (consumes this class).
+- `src.network.server.engine`, `src.network.server.dispatcher`, `src.network.server.handlers`
 """
-
-import logging
-import socket
-import threading
-from pathlib import Path
 
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from src.core.protocol import (
-    BUFFER_SIZE,
     CMD_AUTH,
+    CMD_DELETE,
     CMD_DOWNLOAD,
     CMD_LIST,
     CMD_MKDIR,
-    CMD_QUIT,
+    CMD_MOVE,
+    CMD_RENAME,
     CMD_UPLOAD,
-    DONE,
-    GOODBYE,
-    AUTH_FAIL,
-    AUTH_OK,
-    ProtocolHandler,
-    READY,
-    STATUS_ERROR,
-    STATUS_OK,
 )
+from src.network.server.dispatcher import CommandDispatcher
+from src.network.server.engine import ServerNetworkEngine
+from src.network.server.handlers.auth import AuthCommandHandler
+from src.network.server.handlers.file_ops import FileOpsHandler
+from src.network.server.handlers.transfer import TransferHandler
 from src.storage.auth import AuthManager
 from src.storage.file_manager import FileManager
 
-logger = logging.getLogger("server")
-
 
 class ServerBackend(QObject):
-    """Threaded TCP server with Qt signal integration."""
+    """
+    Threaded TCP server with Qt signal integration.
 
-    # Signals → UI (always emitted from background threads;
-    # Qt queues them automatically for the main thread)
+    Why it exists:
+    Qt GUI widgets cannot be updated from background network threads without crashing. 
+    This class bridges the gap by converting network thread events into Qt Signals, 
+    which safely cross the thread boundary into the main UI thread.
+
+    Responsibilities:
+    - Managing the lifecycle of `ServerNetworkEngine`.
+    - Assembling the handler pipelines and injecting `AuthManager` and `FileManager` dependencies.
+
+    Non-Responsibilities (Anti-Goals):
+    - It does NOT implement protocol framing (delegated to `ProtocolHandler`).
+    - It does NOT perform raw socket I/O (delegated to `engine.py`).
+    """
+
+    # Signals → UI
     log_message = pyqtSignal(str)
     client_connected = pyqtSignal(str)
     client_disconnected = pyqtSignal(str)
+    security_alert = pyqtSignal(dict)
     server_started = pyqtSignal()
     server_stopped = pyqtSignal()
+    socket_state_changed = pyqtSignal(str, str)
 
-    def __init__(self, auth: AuthManager, files: FileManager):
+    def __init__(self, auth: AuthManager, files: FileManager, config=None):
         super().__init__()
         self.auth = auth
         self.files = files
-        self._socket: socket.socket | None = None
-        self._running = False
-        self._clients: dict[str, threading.Thread] = {}
-        self._lock = threading.Lock()
+        max_connections = 5
+        if config is not None:
+            max_connections = config.get_nested("server", "max_connections", default=5)
+        
+        # Build the command dispatcher
+        self.dispatcher = CommandDispatcher()
+        
+        # Handlers
+        auth_handler = AuthCommandHandler(auth)
+        file_handler = FileOpsHandler(files)
+        transfer_handler = TransferHandler(files)
+        
+        # Register routes
+        self.dispatcher.register(CMD_AUTH, auth_handler.handle, requires_auth=False)
+        self.dispatcher.register(CMD_LIST, file_handler.cmd_list)
+        self.dispatcher.register(CMD_MKDIR, file_handler.cmd_mkdir)
+        self.dispatcher.register(CMD_DELETE, file_handler.cmd_delete)
+        self.dispatcher.register(CMD_RENAME, file_handler.cmd_rename)
+        self.dispatcher.register(CMD_MOVE, file_handler.cmd_move)
+        self.dispatcher.register(CMD_UPLOAD, transfer_handler.cmd_upload)
+        self.dispatcher.register(CMD_DOWNLOAD, transfer_handler.cmd_download)
+
+        # Build the networking engine
+        self.engine = ServerNetworkEngine(max_connections=max_connections, dispatcher=self.dispatcher)
+        
+        # Wire engine callbacks to Qt Signals
+        self.engine.on_log_message = self.log_message.emit
+        self.engine.on_client_connected = self.client_connected.emit
+        self.engine.on_client_disconnected = self.client_disconnected.emit
+        self.engine.on_security_alert = self.security_alert.emit
+        self.engine.on_server_started = self.server_started.emit
+        self.engine.on_server_stopped = self.server_stopped.emit
+        self.engine.on_socket_state_changed = self.socket_state_changed.emit
 
     @property
     def is_running(self) -> bool:
-        return self._running
+        """
+        Returns the current running state of the server.
 
-    # ── lifecycle ─────────────────────────────────────────────
+        Args:
+            None.
+
+        Returns:
+            True if the server is actively listening for connections.
+
+        Side Effects:
+            None.
+
+        Failure Behavior:
+            None.
+        """
+        return self.engine.is_running
+
+    def get_statistics(self) -> dict:
+        """
+        Retrieves real-time byte transmission statistics.
+
+        Args:
+            None.
+
+        Returns:
+            A dictionary containing 'tx' (bytes transmitted) and 'rx' (bytes received).
+
+        Side Effects:
+            None.
+
+        Failure Behavior:
+            None.
+        """
+        return self.engine.get_statistics()
+
+    # ── Teacher Mode Chaos Settings ──
+    @property
+    def max_connections(self):
+        return self.engine.max_connections
+
+    @max_connections.setter
+    def max_connections(self, value):
+        self.engine.max_connections = value
+
+    @property
+    def simulate_latency(self):
+        return self.engine.simulate_latency
+
+    @simulate_latency.setter
+    def simulate_latency(self, value):
+        self.engine.simulate_latency = value
+
+    @property
+    def simulate_packet_loss(self):
+        return self.engine.simulate_packet_loss
+
+    @simulate_packet_loss.setter
+    def simulate_packet_loss(self, value):
+        self.engine.simulate_packet_loss = value
 
     def start(self, host: str, port: int):
-        """Bind, listen, and start accepting connections."""
-        if self._running:
-            return
-        try:
-            self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self._socket.settimeout(1.0)
-            self._socket.bind((host, port))
-            self._socket.listen(5)
-            self._running = True
+        """
+        Starts the TCP listening socket on a background thread.
 
-            threading.Thread(target=self._accept_loop, daemon=True).start()
+        Args:
+            host: The IP address to bind to.
+            port: The TCP port to listen on.
 
-            self.log_message.emit(f"Server started on {host}:{port}")
-            logger.info("Server started on %s:%s", host, port)
-            self.server_started.emit()
-        except OSError as exc:
-            self.log_message.emit(f"Failed to start server: {exc}")
-            logger.error("Failed to start server: %s", exc)
-            self._running = False
+        Returns:
+            None. (Asynchronous operation).
+
+        Side Effects:
+            Spawns the main listener thread.
+            Emits `server_started`.
+
+        Failure Behavior:
+            Fails if the port is already in use.
+        """
+        self.engine.start(host, port)
 
     def stop(self):
-        """Shut down the server and drop every connected client."""
-        if not self._running:
-            return
-        self._running = False
+        """
+        Stops the TCP server and disconnects all clients.
 
-        if self._socket:
-            try:
-                self._socket.close()
-            except OSError:
-                pass
+        Args:
+            None.
 
-        with self._lock:
-            self._clients.clear()
+        Returns:
+            None.
 
-        self.log_message.emit("Server stopped")
-        logger.info("Server stopped")
-        self.server_stopped.emit()
+        Side Effects:
+            Kills all background worker threads.
+            Emits `server_stopped`.
 
-    # ── connection handling ───────────────────────────────────
+        Failure Behavior:
+            Safely ignores repeated calls if already stopped.
+        """
+        self.engine.stop()
 
-    def _accept_loop(self):
-        """Accept new connections until the server is stopped."""
-        while self._running:
-            try:
-                conn, addr = self._socket.accept()
-                addr_str = f"{addr[0]}:{addr[1]}"
+    def force_disconnect_client(self, addr_str: str):
+        """
+        Disconnects a specific client aggressively.
 
-                t = threading.Thread(
-                    target=self._handle_client,
-                    args=(conn, addr_str),
-                    daemon=True,
-                )
-                with self._lock:
-                    self._clients[addr_str] = t
-                t.start()
+        Args:
+            addr_str: The IP:Port string identifier of the client.
 
-                self.log_message.emit(f"Client connected: {addr_str}")
-                logger.info("Client connected: %s", addr_str)
-                self.client_connected.emit(addr_str)
+        Returns:
+            None.
 
-            except socket.timeout:
-                continue
-            except OSError:
-                break
+        Side Effects:
+            Closes the target's TCP socket.
 
-    def _handle_client(self, conn: socket.socket, addr: str):
-        """Main loop for a single client thread."""
-        proto = ProtocolHandler(conn)
-        username: str | None = None
-
-        try:
-            while self._running:
-                try:
-                    parts = proto.recv_message()
-                except ConnectionError:
-                    break
-                if not parts:
-                    break
-
-                cmd = parts[0].upper()
-
-                if cmd == CMD_AUTH:
-                    username = self._cmd_auth(proto, parts)
-
-                elif cmd == CMD_LIST:
-                    if not self._require_auth(proto, username):
-                        continue
-                    self._cmd_list(proto, parts, username)
-
-                elif cmd == CMD_UPLOAD:
-                    if not self._require_auth(proto, username):
-                        continue
-                    self._cmd_upload(proto, parts, username)
-
-                elif cmd == CMD_DOWNLOAD:
-                    if not self._require_auth(proto, username):
-                        continue
-                    self._cmd_download(proto, parts, username)
-
-                elif cmd == CMD_MKDIR:
-                    if not self._require_auth(proto, username):
-                        continue
-                    self._cmd_mkdir(proto, parts, username)
-
-                elif cmd == CMD_QUIT:
-                    proto.send_message(STATUS_OK, GOODBYE)
-                    break
-
-                else:
-                    proto.send_message(STATUS_ERROR, "Unknown command")
-
-        except Exception as exc:
-            logger.error("Error handling %s: %s", addr, exc)
-        finally:
-            conn.close()
-            with self._lock:
-                self._clients.pop(addr, None)
-            self.log_message.emit(f"Client disconnected: {addr}")
-            logger.info("Client disconnected: %s", addr)
-            self.client_disconnected.emit(addr)
-
-    # ── guards ────────────────────────────────────────────────
-
-    @staticmethod
-    def _require_auth(proto: ProtocolHandler, username: str | None) -> bool:
-        if username is None:
-            proto.send_message(STATUS_ERROR, "Not authenticated")
-            return False
-        return True
-
-    # ── command handlers ──────────────────────────────────────
-
-    def _cmd_auth(self, proto: ProtocolHandler, parts: list) -> str | None:
-        if len(parts) < 3:
-            proto.send_message(STATUS_ERROR, AUTH_FAIL)
-            return None
-        user, pwd = parts[1], parts[2]
-        if self.auth.verify(user, pwd):
-            proto.send_message(STATUS_OK, AUTH_OK)
-            self.log_message.emit(f"User '{user}' authenticated")
-            logger.info("User '%s' authenticated", user)
-            return user
-        proto.send_message(STATUS_ERROR, AUTH_FAIL)
-        self.log_message.emit(f"Auth failed for '{user}'")
-        logger.warning("Auth failed for '%s'", user)
-        return None
-
-    def _cmd_list(self, proto: ProtocolHandler, parts: list, user: str):
-        path = parts[1] if len(parts) > 1 else ""
-        entries = self.files.list_directory(user, path)
-        if entries is None:
-            proto.send_message(STATUS_ERROR, "Invalid path")
-            return
-        encoded = ";".join(
-            f"{e['name']}:{e['size']}:{e['type']}" for e in entries
-        )
-        proto.send_message(STATUS_OK, encoded)
-
-    def _cmd_upload(self, proto: ProtocolHandler, parts: list, user: str):
-        if len(parts) < 3:
-            proto.send_message(STATUS_ERROR, "Missing filename or size")
-            return
-        filename = parts[1]
-        try:
-            size = int(parts[2])
-        except ValueError:
-            proto.send_message(STATUS_ERROR, "Invalid file size")
-            return
-
-        target = self.files.get_file_path(user, filename)
-        if target is None:
-            proto.send_message(STATUS_ERROR, "Invalid path")
-            return
-
-        target.parent.mkdir(parents=True, exist_ok=True)
-        proto.send_message(STATUS_OK, READY)
-
-        try:
-            data = proto.recv_exact(size)
-            with open(target, "wb") as fh:
-                fh.write(data)
-            proto.send_message(STATUS_OK, DONE)
-            self.log_message.emit(f"'{user}' uploaded {filename} ({size} B)")
-            logger.info("'%s' uploaded %s (%d bytes)", user, filename, size)
-        except Exception as exc:
-            proto.send_message(STATUS_ERROR, str(exc))
-            logger.error("Upload error for '%s': %s", user, exc)
-
-    def _cmd_download(self, proto: ProtocolHandler, parts: list, user: str):
-        if len(parts) < 2:
-            proto.send_message(STATUS_ERROR, "Missing filename")
-            return
-        filename = parts[1]
-        target = self.files.get_file_path(user, filename)
-        if target is None or not target.is_file():
-            proto.send_message(STATUS_ERROR, "File not found")
-            return
-
-        size = target.stat().st_size
-        proto.send_message(STATUS_OK, str(size))
-        try:
-            with open(target, "rb") as fh:
-                while True:
-                    chunk = fh.read(BUFFER_SIZE)
-                    if not chunk:
-                        break
-                    proto.send_bytes(chunk)
-            self.log_message.emit(f"'{user}' downloaded {filename}")
-            logger.info("'%s' downloaded %s (%d bytes)", user, filename, size)
-        except Exception as exc:
-            logger.error("Download error for '%s': %s", user, exc)
-
-    def _cmd_mkdir(self, proto: ProtocolHandler, parts: list, user: str):
-        if len(parts) < 2:
-            proto.send_message(STATUS_ERROR, "Missing directory name")
-            return
-        dirname = parts[1]
-        if self.files.create_directory(user, dirname):
-            proto.send_message(STATUS_OK, "Directory created")
-            self.log_message.emit(f"'{user}' created dir: {dirname}")
-        else:
-            proto.send_message(STATUS_ERROR, "Could not create directory")
+        Failure Behavior:
+            Silently ignores the request if the client is already disconnected.
+        """
+        self.engine.force_disconnect_client(addr_str)

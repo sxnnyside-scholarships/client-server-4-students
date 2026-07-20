@@ -1,25 +1,46 @@
 """
-Common Widgets & Helpers
-────────────────────────
-Small reusable pieces shared across the Launcher, Client, and Server UIs.
+Module: common.py
+─────────────────
+Purpose: Provides reusable, self-contained UI components shared across the application.
+
+Architectural Role:
+Acts as a standardized component library. It reduces code duplication in the main 
+window classes by centralizing the layout and styling of repeated elements.
+
+Responsibilities:
+- Provide the `BrandingFooter` widget.
+- Provide the `LabeledInput` widget.
+- Provide the `StatusBadge` widget (live connection/server state pill).
+- Provide formatting utilities like `format_file_size`.
+
+Expected Collaborators:
+- `src.ui.launcher`, `src.ui.client_window`, `src.ui.server_window`
+- `src.ui.widgets.nav_rail.NavRail` (hosts `StatusBadge` and `BrandingFooter`)
 """
 
-import webbrowser
-
 from PyQt6.QtCore import Qt
-from PyQt6.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QWidget
+from PyQt6.QtGui import QColor
+from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QHBoxLayout, QLabel, QWidget
 
-
-SXNNYSIDE_URL = "https://www.sxnnysideproject.com"
+from src.ui.themes.tokens import status_color
+from src.ui.widgets.atoms import MintTextInput
 
 
 def format_file_size(size_bytes: int) -> str:
-    """Return a human-friendly file-size string.
+    """
+    Converts a raw byte count into a human-readable string (KB, MB, GB).
 
-    >>> format_file_size(1023)
-    '1023 B'
-    >>> format_file_size(10240)
-    '10.0 KB'
+    Args:
+        size_bytes: The integer number of bytes to format.
+
+    Returns:
+        A formatted string with the appropriate suffix.
+
+    Side Effects:
+        None.
+
+    Failure Behavior:
+        None.
     """
     if size_bytes < 1024:
         return f"{size_bytes} B"
@@ -31,57 +52,74 @@ def format_file_size(size_bytes: int) -> str:
 
 
 class BrandingFooter(QLabel):
-    """A subtle branding footer displayed at the bottom of every window.
+    """
+    A subtle, single-line attribution footer displayed at the bottom of every
+    main window.
 
-    Shows the text provided by the locale system, with "Sxnnyside Project"
-    rendered as a clickable hyperlink that opens in the default browser.
+    Why it exists:
+    CS4S is a Sxnnyside Scholarships product; every screen carries a quiet,
+    non-interactive attribution line so the whole application reads as one
+    coherent product rather than a bare student exercise — without turning
+    the footer into a promotional link.
+
+    Responsibilities:
+    - Rendering the footer text.
+    - Providing an update method for dynamic language switching.
+
+    Non-Responsibilities (Anti-Goals):
+    - It does NOT track telemetry, open URLs, or report clicks.
     """
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("brandingFooter")
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setOpenExternalLinks(False)
-        self.setTextFormat(Qt.TextFormat.RichText)
-        self.linkActivated.connect(self._open_link)
-        self.setStyleSheet(
-            "QLabel#brandingFooter {"
-            "  color: #888888;"
-            "  font-size: 11px;"
-            "  padding: 4px 0;"
-            "}"
-        )
-        # Default text (overwritten by retranslate calls)
-        self._set_text("Developed by Sxnnyside Scholarships", "Sxnnyside Project")
 
-    def _set_text(self, prefix: str, link_text: str):
-        """Build the HTML label: prefix · <a>link_text</a>."""
-        self.setText(
-            f'{prefix} · <a href="{SXNNYSIDE_URL}" '
-            f'style="color:#888888; text-decoration:none;">{link_text}</a>'
-        )
+    def update_text(self, text: str):
+        """
+        Public API used by `retranslate()` in each window to update the text.
 
-    def update_text(self, prefix: str, link_text: str):
-        """Public API used by ``retranslate()`` in each window."""
-        self._set_text(prefix, link_text)
+        Args:
+            text: The translated attribution string.
 
-    @staticmethod
-    def _open_link(url: str):
-        webbrowser.open(url)
+        Returns:
+            None.
+
+        Side Effects:
+            Mutates the widget's text.
+
+        Failure Behavior:
+            None.
+        """
+        self.setText(text)
 
 
 class LabeledInput(QWidget):
-    """A horizontal ``QLabel + QLineEdit`` pair."""
+    """
+    A composite widget combining a `QLabel` and a `QLineEdit` horizontally.
 
-    def __init__(self, label_text: str = "", placeholder: str = "", parent=None):
+    Why it exists:
+    Forms in PyQt often require pairing a label with an input. This widget bundles 
+    them together to reduce boilerplate layout code in parent windows.
+
+    Responsibilities:
+    - Wrapping a `QLabel` and `QLineEdit` in a horizontal layout.
+    - Exposing text getters and setters.
+
+    Non-Responsibilities (Anti-Goals):
+    - It does NOT perform input validation (e.g., checking if it's an integer).
+    """
+
+    def __init__(self, label_text: str = "", placeholder: str = "", theme_name: str = "mint_light", parent=None):
         super().__init__(parent)
+        self._theme_name = theme_name
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
 
         self.label = QLabel(label_text)
         self.label.setMinimumWidth(60)
-        self.input = QLineEdit()
+        self.input = MintTextInput(self._theme_name)
         self.input.setPlaceholderText(placeholder)
 
         layout.addWidget(self.label)
@@ -92,3 +130,75 @@ class LabeledInput(QWidget):
 
     def set_text(self, value: str):
         self.input.setText(value)
+
+
+class StatusBadge(QWidget):
+    """
+    A small, always-visible pill showing the current connection/server state.
+
+    Why it exists:
+    Both the Client and Server windows previously had no persistent visual
+    indicator of live state — the only feedback was a transient status-bar
+    message that disappears after a few seconds, leaving the idle screen
+    looking inert. This badge stays on screen and updates in place, using
+    color (not just text) to communicate state at a glance.
+
+    Responsibilities:
+    - Rendering a colored dot + label reflecting the current state.
+    - Exposing `set_state()` so windows can drive it from their own signals.
+
+    Non-Responsibilities (Anti-Goals):
+    - It does NOT decide what the current state is — the owning window
+      determines that from its backend signals and calls `set_state()`.
+    """
+
+    def __init__(self, theme_name: str, parent=None):
+        super().__init__(parent)
+        self._theme_name = theme_name
+
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+
+        self._dot = QLabel()
+        self._dot.setFixedSize(8, 8)
+        glow = QGraphicsDropShadowEffect(self._dot)
+        glow.setBlurRadius(10)
+        glow.setXOffset(0)
+        glow.setYOffset(0)
+        self._glow = glow
+        self._dot.setGraphicsEffect(glow)
+        self._label = QLabel()
+        self._label.setObjectName("statusBadgeLabel")
+
+        layout.addWidget(self._dot)
+        layout.addWidget(self._label)
+
+        self.set_state("offline", "")
+
+    def set_state(self, state: str, text: str):
+        """
+        Updates the badge's color and text to reflect a new state.
+
+        Args:
+            state: One of "offline", "connecting", "online", "error" — see
+                `tokens.STATUS_COLORS`.
+            text: The localized label to display next to the dot.
+
+        Returns:
+            None.
+
+        Side Effects:
+            Mutates the dot's stylesheet color and the label's text.
+
+        Failure Behavior:
+            Falls back to the "offline" color if `state` is unrecognized.
+        """
+        color = status_color(self._theme_name, state)
+        self._dot.setStyleSheet(
+            f"background-color: {color}; border-radius: 4px;"
+        )
+        glow_color = QColor(color)
+        glow_color.setAlpha(180)
+        self._glow.setColor(glow_color)
+        self._label.setText(text)

@@ -1,0 +1,514 @@
+/*
+ * ═══════════════════════════════════════════════════════════
+ *  MINTPY DESIGN SYSTEM QSS TEMPLATE
+ * ═══════════════════════════════════════════════════════════
+ *
+ *  Radii          ─  5px xs · 8px sm · 10px md · 14px lg
+ *  Heights        ─  ~34px controls (padding-driven)
+ *  Typography     ─  13px body · 11px captions · 12px mono
+ *
+ * ═══════════════════════════════════════════════════════════
+ */
+
+/* ── base ─────────────────────────────────────────────── */
+
+QWidget {
+    background-color: @BACKGROUND@;
+    color: @TEXT@;
+    font-family: "Inter", "Roboto", "Segoe UI", system-ui, sans-serif;
+    font-size: 13px;
+}
+
+QMainWindow, QDialog {
+    background-color: @BACKGROUND@;
+}
+
+/* ── labels ───────────────────────────────────────────── */
+
+QLabel {
+    background-color: transparent;
+    color: @TEXT@;
+    padding: 2px;
+}
+
+QLabel#titleLabel {
+    font-size: 24px;
+    font-weight: 700;
+    color: @ACCENT@;
+    padding: 8px 8px 4px 8px;
+}
+
+QLabel#subtitleLabel {
+    font-size: 13px;
+    color: @TEXT_SECONDARY@;
+    padding: 0 2px 2px 2px;
+}
+
+QLabel#versionLabel {
+    font-size: 11px;
+    color: @TEXT_MUTED@;
+}
+
+QLabel#brandingFooter {
+    color: @TEXT_MUTED@;
+    font-size: 11px;
+    padding: 4px 0;
+}
+
+QLabel#pathLabel {
+    font-size: 13px;
+    color: @TEXT_SECONDARY@;
+    padding: 6px 10px;
+    background-color: @SURFACE@;
+    border: 1px solid @BORDER@;
+    border-radius: 8px; /* sm */
+}
+
+QLabel#formLabel, QLabel#settingsLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: @TEXT_SECONDARY@;
+    padding: 0 2px 2px 2px;
+}
+
+QLabel#cardDescriptionLabel {
+    font-size: 11px;
+    color: @TEXT_MUTED@;
+    padding: 0 6px;
+}
+
+/* ── buttons ──────────────────────────────────────────── */
+
+QPushButton {
+    background-color: @SURFACE@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 10px; /* md */
+    padding: 8px 16px;
+    font-size: 13px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: @SURFACE_HOVER@;
+    border-color: @BORDER_HOVER@;
+}
+
+QPushButton:pressed {
+    background-color: @SURFACE_PRESSED@;
+}
+
+QPushButton:disabled {
+    background-color: @SURFACE_DISABLED@;
+    color: @TEXT_DISABLED@;
+    border-color: @BORDER_DISABLED@;
+}
+
+QPushButton#primaryButton {
+    background-color: @ACCENT@;
+    color: #FFFFFF;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 20px;
+    border-radius: 10px; /* md */
+}
+
+QPushButton#primaryButton:hover {
+    background-color: @ACCENT_HOVER@;
+}
+
+QPushButton#primaryButton:pressed {
+    background-color: @ACCENT_PRESSED@;
+}
+
+QPushButton#primaryButton:disabled {
+    background-color: @ACCENT_MUTED@;
+    color: @SURFACE@;
+}
+
+QPushButton#dangerButton {
+    background-color: @DANGER@;
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px; /* md */
+    padding: 8px 16px;
+}
+
+QPushButton#dangerButton:hover {
+    background-color: @DANGER_HOVER@;
+}
+
+QPushButton#dangerButton:pressed {
+    background-color: @DANGER@;
+}
+
+/* ── breadcrumbs & icon buttons ───────────────────────── */
+
+QToolButton#breadcrumbSegment {
+    background-color: transparent;
+    color: @TEXT_SECONDARY@;
+    border: none;
+    border-radius: 8px; /* sm */
+    padding: 6px 10px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+QToolButton#breadcrumbSegment:hover {
+    background-color: @SURFACE_HOVER@;
+    color: @TEXT@;
+}
+
+QPushButton#iconButton {
+    background-color: @SURFACE@;
+    border: 1px solid @BORDER@;
+    border-radius: 10px; /* md */
+    padding: 8px;
+    min-width: 18px;
+    min-height: 18px;
+}
+
+QPushButton#iconButton:hover {
+    background-color: @SURFACE_HOVER@;
+    border-color: @BORDER_HOVER@;
+}
+
+/* ── launcher mode cards ──────────────────────────────── */
+
+QToolButton#modeCard {
+    background-color: @SURFACE@;
+    border: 1px solid @BORDER@;
+    border-radius: 10px; /* md */
+    padding: 14px 10px 12px 10px;
+    color: @TEXT@;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QToolButton#modeCard:hover {
+    border-color: @ACCENT@;
+    background-color: @ACCENT_SURFACE@;
+}
+
+QToolButton#modeCard:pressed {
+    background-color: @ACCENT_SURFACE_HOVER@;
+}
+
+/* ── inputs ───────────────────────────────────────────── */
+
+QLineEdit {
+    background-color: @SURFACE@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 8px; /* sm */
+    padding: 8px 12px;
+    font-size: 13px;
+    selection-background-color: @ACCENT@;
+    selection-color: #FFFFFF;
+}
+
+QLineEdit:focus {
+    border-color: @ACCENT@;
+}
+
+QLineEdit:disabled {
+    background-color: @SURFACE_DISABLED@;
+    color: @TEXT_DISABLED@;
+}
+
+/* ── spin boxes ───────────────────────────────────────── */
+
+QDoubleSpinBox, QSpinBox {
+    background-color: @SURFACE@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 8px; /* sm */
+    padding: 8px 12px;
+    font-size: 13px;
+    selection-background-color: @ACCENT@;
+    selection-color: #FFFFFF;
+}
+
+QDoubleSpinBox:focus, QSpinBox:focus {
+    border-color: @ACCENT@;
+}
+
+/* ── combo box ────────────────────────────────────────── */
+
+QComboBox {
+    background-color: @SURFACE@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 8px; /* sm */
+    padding: 8px 12px;
+    min-width: 100px;
+    font-size: 13px;
+}
+
+QComboBox:hover {
+    border-color: @ACCENT@;
+}
+
+QComboBox QAbstractItemView {
+    background-color: @SURFACE@;
+    border: 1px solid @BORDER@;
+    selection-background-color: @ACCENT@;
+    selection-color: #FFFFFF;
+    padding: 4px;
+    color: @TEXT@;
+    outline: none;
+    border-radius: 8px;
+}
+
+/* ── tables ───────────────────────────────────────────── */
+
+QTableWidget {
+    background-color: @SURFACE@;
+    alternate-background-color: @SURFACE_ALT@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 14px; /* lg */
+    gridline-color: transparent;
+    selection-background-color: @ACCENT@;
+    selection-color: #FFFFFF;
+    font-size: 13px;
+    outline: none;
+}
+
+QTableWidget::item {
+    padding: 6px 10px;
+    border-bottom: 1px solid @SURFACE_RAISED@;
+}
+
+QTableWidget::item:hover {
+    background-color: @SURFACE_ALT_HOVER@;
+}
+
+QHeaderView::section {
+    background-color: @SURFACE_RAISED@;
+    color: @TEXT_SECONDARY@;
+    font-weight: 600;
+    font-size: 11px;
+    border: none;
+    border-bottom: 2px solid @ACCENT@;
+    padding: 8px 10px;
+}
+
+/* ── lists ────────────────────────────────────────────── */
+
+QListWidget {
+    background-color: @SURFACE@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 14px; /* lg */
+    padding: 4px;
+    font-size: 13px;
+    outline: none;
+}
+
+QListWidget::item {
+    padding: 6px 10px;
+    border-radius: 8px; /* sm */
+}
+
+QListWidget::item:hover {
+    background-color: @SURFACE_ALT_HOVER@;
+}
+
+QListWidget::item:selected {
+    background-color: @ACCENT@;
+    color: #FFFFFF;
+}
+
+/* ── text areas (logs) ────────────────────────────────── */
+
+QTextEdit, QPlainTextEdit {
+    background-color: @SURFACE@;
+    color: @TEXT@;
+    border: 1px solid @BORDER@;
+    border-radius: 14px; /* lg */
+    padding: 8px;
+    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", "Menlo", monospace;
+    font-size: 12px;
+}
+
+QTextEdit#logArea {
+    background-color: @SURFACE_INSET@;
+}
+
+/* ── protocol inspector ───────────────────────────────── */
+
+QLabel#inspectorHeaderLabel {
+    font-weight: 700;
+    font-size: 12px;
+    color: @TEXT_SECONDARY@;
+}
+
+QLabel#rttLabel {
+    font-family: "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    font-size: 12px;
+    color: @TEXT_SECONDARY@;
+}
+
+QLabel#explanationLabel {
+    color: @ACCENT@;
+    font-style: italic;
+    font-size: 12px;
+    padding: 4px 2px;
+}
+
+QLabel#statsLabel {
+    font-family: "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    font-size: 13px;
+    color: @TEXT_SECONDARY@;
+}
+
+/* ── group boxes ──────────────────────────────────────── */
+
+QGroupBox {
+    font-weight: 600;
+    font-size: 11px;
+    color: @TEXT_SECONDARY@;
+    border: 1px solid @BORDER@;
+    border-radius: 14px; /* lg */
+    margin-top: 14px;
+    padding: 20px 12px 12px 12px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 2px 10px;
+    color: @ACCENT@;
+    font-weight: 700;
+    font-size: 11px;
+}
+
+/* ── status badge ─────────────────────────────────────── */
+
+QLabel#statusBadgeLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: @TEXT_SECONDARY@;
+}
+
+/* ── nav rail ─────────────────────────────────────────── */
+
+QLabel#navWordmark {
+    font-size: 15px;
+    font-weight: 700;
+    color: @TEXT@;
+}
+
+QLabel#navSectionLabel {
+    font-size: 10px;
+    font-weight: 700;
+    color: @TEXT_MUTED@;
+    padding-top: 4px;
+}
+
+/* ── splitter ─────────────────────────────────────────── */
+
+QSplitter::handle {
+    background-color: @BORDER@;
+    width: 1px;
+    margin: 8px 3px;
+}
+
+QSplitter::handle:hover {
+    background-color: @ACCENT@;
+}
+
+/* ── status bar ───────────────────────────────────────── */
+
+QStatusBar {
+    background-color: @SURFACE_INSET@;
+    color: @TEXT_SECONDARY@;
+    font-size: 12px;
+    border-top: 1px solid @BORDER@;
+    padding: 4px 12px;
+}
+
+/* ── progress bar ─────────────────────────────────────── */
+
+QProgressBar {
+    background-color: @BORDER@;
+    border: none;
+    border-radius: 2px;
+    height: 4px;
+    text-align: center;
+    font-size: 10px;
+    color: @TEXT@;
+}
+
+QProgressBar::chunk {
+    background-color: @ACCENT@;
+    border-radius: 2px;
+}
+
+/* ── scroll bars ──────────────────────────────────────── */
+
+QScrollBar:vertical {
+    background-color: transparent;
+    width: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:vertical {
+    background-color: @BORDER@;
+    min-height: 32px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: @ACCENT@;
+}
+
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical {
+    height: 0;
+}
+
+QScrollBar:horizontal {
+    background-color: transparent;
+    height: 8px;
+    margin: 0;
+}
+
+QScrollBar::handle:horizontal {
+    background-color: @BORDER@;
+    min-width: 32px;
+    border-radius: 4px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background-color: @ACCENT@;
+}
+
+QScrollBar::add-line:horizontal,
+QScrollBar::sub-line:horizontal {
+    width: 0;
+}
+
+/* ── tooltips ─────────────────────────────────────────── */
+
+QToolTip {
+    background-color: @TEXT@;
+    color: @BACKGROUND@;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 8px; /* sm */
+    font-size: 12px;
+}
+
+/* ── message box ──────────────────────────────────────── */
+
+QMessageBox {
+    background-color: @BACKGROUND@;
+}
+
+QMessageBox QLabel {
+    color: @TEXT@;
+    font-size: 13px;
+}

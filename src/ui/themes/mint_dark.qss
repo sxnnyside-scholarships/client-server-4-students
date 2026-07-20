@@ -67,6 +67,12 @@ QLabel#versionLabel {
     color: #4A5568;
 }
 
+QLabel#brandingFooter {
+    color: #4A5568;
+    font-size: 11px;
+    padding: 4px 0;
+}
+
 QLabel#pathLabel {
     font-size: 13px;
     color: #8A94A6;
@@ -81,6 +87,12 @@ QLabel#formLabel, QLabel#settingsLabel {
     font-weight: 600;
     color: #8A94A6;
     padding: 0 2px 2px 2px;
+}
+
+QLabel#cardDescriptionLabel {
+    font-size: 11px;
+    color: #4A5568;
+    padding: 0 6px;
 }
 
 /* ── buttons ──────────────────────────────────────────── */
@@ -149,6 +161,27 @@ QPushButton#dangerButton:pressed {
     background-color: #B71C1C;
 }
 
+/* ── launcher mode cards ──────────────────────────────── */
+
+QToolButton#modeCard {
+    background-color: #232838;
+    border: 1px solid #2E3548;
+    border-radius: 8px;
+    padding: 14px 10px 12px 10px;
+    color: #E8ECEF;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+QToolButton#modeCard:hover {
+    border-color: #45B7A0;
+    background-color: #1E332E;
+}
+
+QToolButton#modeCard:pressed {
+    background-color: #172824;
+}
+
 /* ── inputs ───────────────────────────────────────────── */
 
 QLineEdit {
@@ -171,6 +204,23 @@ QLineEdit:disabled {
     color: #4A5568;
 }
 
+/* ── spin boxes ───────────────────────────────────────── */
+
+QDoubleSpinBox, QSpinBox {
+    background-color: #232838;
+    color: #E8ECEF;
+    border: 1px solid #2E3548;
+    border-radius: 5px;
+    padding: 7px 10px;
+    font-size: 13px;
+    selection-background-color: #45B7A0;
+    selection-color: #FFFFFF;
+}
+
+QDoubleSpinBox:focus, QSpinBox:focus {
+    border-color: #45B7A0;
+}
+
 /* ── combo box ────────────────────────────────────────── */
 
 QComboBox {
@@ -185,20 +235,6 @@ QComboBox {
 
 QComboBox:hover {
     border-color: #45B7A0;
-}
-
-QComboBox::drop-down {
-    subcontrol-origin: padding;
-    subcontrol-position: top right;
-    width: 26px;
-    border-left: 1px solid #2E3548;
-    border-top-right-radius: 5px;
-    border-bottom-right-radius: 5px;
-}
-
-QComboBox::down-arrow {
-    width: 10px;
-    height: 10px;
 }
 
 QComboBox QAbstractItemView {
@@ -287,6 +323,33 @@ QTextEdit#logArea {
     background-color: #1E2436;
 }
 
+/* ── protocol inspector ───────────────────────────────── */
+
+QLabel#inspectorHeaderLabel {
+    font-weight: 700;
+    font-size: 12px;
+    color: #8A94A6;
+}
+
+QLabel#rttLabel {
+    font-family: "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    font-size: 12px;
+    color: #8A94A6;
+}
+
+QLabel#explanationLabel {
+    color: #45B7A0;
+    font-style: italic;
+    font-size: 12px;
+    padding: 4px 2px;
+}
+
+QLabel#statsLabel {
+    font-family: "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    font-size: 13px;
+    color: #8A94A6;
+}
+
 /* ── group boxes ──────────────────────────────────────── */
 
 QGroupBox {
@@ -306,6 +369,62 @@ QGroupBox::title {
     color: #45B7A0;
     font-weight: 700;
     font-size: 11px;
+}
+
+/* ── status badge ─────────────────────────────────────── */
+
+QLabel#statusBadgeLabel {
+    font-size: 12px;
+    font-weight: 600;
+    color: #8A94A6;
+}
+
+/* ── nav rail ─────────────────────────────────────────── */
+
+QLabel#navWordmark {
+    font-size: 15px;
+    font-weight: 700;
+    color: #E8ECEF;
+}
+
+QLabel#navSectionLabel {
+    font-size: 10px;
+    font-weight: 700;
+    color: #4A5568;
+    padding-top: 4px;
+}
+
+/* ── toggle action button (Start/Stop Server) ──────────
+ * A single checkable control instead of two competing buttons: "off"
+ * reads as a safe primary action (mint), "on" reads as a disruptive one
+ * (danger red), since stopping the server drops every connected client. */
+
+QPushButton#toggleActionOff {
+    background-color: #45B7A0;
+    color: #FFFFFF;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 20px;
+    border-radius: 6px;
+}
+
+QPushButton#toggleActionOff:hover {
+    background-color: #3CA38E;
+}
+
+QPushButton#toggleActionOn {
+    background-color: #E17055;
+    color: #FFFFFF;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 20px;
+    border-radius: 6px;
+}
+
+QPushButton#toggleActionOn:hover {
+    background-color: #D63031;
 }
 
 /* ── splitter ─────────────────────────────────────────── */
