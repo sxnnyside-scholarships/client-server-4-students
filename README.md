@@ -1,7 +1,5 @@
 # Client-Server 4 Students
 
-![Banner](client-server-4-students-banner.png)
-
 ![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/License-GPLv3-green)
 [![CI](https://github.com/sxnnyside-scholarships/client-server-4-students/workflows/CI/badge.svg)](https://github.com/sxnnyside-scholarships/client-server-4-students/actions)

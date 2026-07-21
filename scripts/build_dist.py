@@ -21,10 +21,21 @@ def main():
         print("Error: Could not find 'src' directory. Run from project root.")
         sys.exit(1)
 
+    # Locate pyinstaller within the current virtualenv if possible
+    python_dir = Path(sys.executable).parent
+    pyinstaller_name = "pyinstaller.exe" if os.name == "nt" else "pyinstaller"
+    pyinstaller_path = python_dir / pyinstaller_name
+
+    if pyinstaller_path.exists():
+        pyinstaller_cmd = str(pyinstaller_path)
+    else:
+        # Fallback to system-wide executable
+        pyinstaller_cmd = "pyinstaller"
+
     # Build the PyInstaller command
     # We include localization and any other necessary data
     command = [
-        "pyinstaller",
+        pyinstaller_cmd,
         "--noconfirm",
         "--clean",
         "--windowed",  # Don't open a console window on launch

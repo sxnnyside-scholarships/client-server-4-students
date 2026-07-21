@@ -153,7 +153,8 @@ class ServerNetworkEngine:
             self._socket.listen(5)
             self._running = True
 
-            threading.Thread(target=self._accept_loop, daemon=True).start()
+            self._accept_thread = threading.Thread(target=self._accept_loop, daemon=True)
+            self._accept_thread.start()
 
             msg = f"Server started on {host}:{port}"
             self.on_log_message(msg)
@@ -193,16 +194,26 @@ class ServerNetworkEngine:
             except OSError:
                 pass
 
+        if hasattr(self, "_accept_thread") and self._accept_thread:
+            self._accept_thread.join(timeout=0.5)
+
+        threads = []
         with self._lock:
-            for _addr, (_t, conn, _proto) in self._clients.items():
+            for _addr, (t, conn, _proto) in self._clients.items():
                 try:
                     conn.close()
                 except OSError:
                     pass
-            self._clients.clear()
+                threads.append(t)
 
-        self.on_log_message("Server stopped")
-        logger.info("Server stopped")
+        for t in threads:
+            t.join(timeout=0.5)
+
+        # Overwrite callbacks to prevent late background threads from calling destroyed Qt/signal targets
+        self.on_log_message = lambda x: None
+        self.on_client_connected = lambda x: None
+        self.on_client_disconnected = lambda x: None
+
         self.on_server_stopped()
 
     def force_disconnect_client(self, addr_str: str):
