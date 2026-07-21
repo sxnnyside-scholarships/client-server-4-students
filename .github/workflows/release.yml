@@ -12,9 +12,18 @@ jobs:
   build-and-release:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+            exe_name: CS4S
+            artifact_name: CS4S-linux
+          - os: macos-latest
+            exe_name: CS4S
+            artifact_name: CS4S-macos
+          - os: windows-latest
+            exe_name: CS4S.exe
+            artifact_name: CS4S-windows.exe
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,28 +42,22 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Install just
-        uses: extractions/setup-just@v2
+      - name: Install Qt6 system dependencies (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libegl1 libgl1 libxcb-cursor0 libxkbcommon-x11-0 \
+            libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+            libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libx11-xcb1
 
       - name: Build Standalone Executable
-        run: just build
+        run: poetry run python scripts/build_dist.py
 
-      - name: Rename Executable (Windows)
-        if: matrix.os == 'windows-latest'
-        run: mv dist/CS4S.exe dist/CS4S-windows.exe
+      - name: Rename executable to platform artifact name
+        shell: bash
+        run: mv dist/${{ matrix.exe_name }} dist/${{ matrix.artifact_name }}
 
-      - name: Rename Executable (macOS)
-        if: matrix.os == 'macos-latest'
-        run: mv dist/CS4S dist/CS4S-macos
-
-      - name: Rename Executable (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: mv dist/CS4S dist/CS4S-linux
-
-      - name: Upload Artifacts to Release
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            dist/CS4S-windows.exe
-            dist/CS4S-macos
-            dist/CS4S-linux
+          files: dist/${{ matrix.artifact_name }}
