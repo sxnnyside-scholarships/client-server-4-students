@@ -33,26 +33,26 @@ def test_auth_manager_lifecycle(mock_users_file):
 
     Failure Behavior:
         Fails if users are improperly validated or persistence breaks.
-        
-    Ensure users can be added, verified, and that data persists across 
+
+    Ensure users can be added, verified, and that data persists across
     manager instances (simulating server restarts).
     """
     auth = AuthManager(mock_users_file)
-    
+
     # Defaults are created if file doesn't exist
     assert auth.verify("student", "student") is True
-    
+
     # Adding a new valid user
     assert auth.add_user("test1", "password123") is True
     assert auth.verify("test1", "password123") is True
     assert auth.verify("test1", "wrong") is False
-    
+
     # Invalid usernames are rejected deterministically
     assert auth.add_user("../admin", "hack") is False
-    
+
     # Duplicate users are rejected
     assert auth.add_user("test1", "other") is False
-    
+
     # Verify persistence by loading a fresh instance from the same mock file
     auth2 = AuthManager(mock_users_file)
     assert auth2.verify("test1", "password123") is True

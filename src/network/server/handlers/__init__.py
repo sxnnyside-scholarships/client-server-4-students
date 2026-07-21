@@ -4,8 +4,8 @@ Package: src.network.server.handlers
 Purpose: Contains the specific execution logic for every supported CS4S protocol command.
 
 Architectural Role:
-Acts as the execution leaf-nodes of the server architecture. These handlers are dynamically 
-registered with the `CommandDispatcher`. They decouple the *parsing and routing* of a network 
+Acts as the execution leaf-nodes of the server architecture. These handlers are dynamically
+registered with the `CommandDispatcher`. They decouple the *parsing and routing* of a network
 request from the *actual execution* of the file/auth operation.
 
 Responsibilities:

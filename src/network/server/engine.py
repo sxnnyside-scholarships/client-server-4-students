@@ -4,8 +4,8 @@ Module: engine.py
 Purpose: Manages the TCP socket accept loop and client thread lifecycle.
 
 Architectural Role:
-This is the foundational network listener for the server. It manages the server's 
-main `bind` and `accept` loop, spawning isolated `ClientConnectionHandler` threads 
+This is the foundational network listener for the server. It manages the server's
+main `bind` and `accept` loop, spawning isolated `ClientConnectionHandler` threads
 for every incoming connection.
 
 Responsibilities:
@@ -34,13 +34,14 @@ from src.network.server.connection import ClientConnectionHandler
 
 logger = logging.getLogger("server.engine")
 
+
 class ServerNetworkEngine:
     """
     Manages the primary TCP socket accept loop and the lifecycle of client threads.
 
     Why it exists:
-    A server must be able to accept new connections while simultaneously serving 
-    existing ones. This engine separates the "accepting" logic from the "handling" logic, 
+    A server must be able to accept new connections while simultaneously serving
+    existing ones. This engine separates the "accepting" logic from the "handling" logic,
     ensuring the server never blocks while waiting for a new client.
 
     Responsibilities:
@@ -61,7 +62,11 @@ class ServerNetworkEngine:
         self._clients: dict[str, tuple[threading.Thread, socket.socket, ProtocolHandler]] = {}
         self._lock = threading.Lock()
         self._shutdown_event = threading.Event()
-        
+
+        self.enable_tls = False
+        self.cert_file = "cert.pem"
+        self.key_file = "key.pem"
+
         # Callbacks to notify the Facade/UI
         self.on_log_message: Callable[[str], None] = lambda x: None
         self.on_client_connected: Callable[[str], None] = lambda x: None
@@ -70,7 +75,7 @@ class ServerNetworkEngine:
         self.on_server_started: Callable[[], None] = lambda: None
         self.on_server_stopped: Callable[[], None] = lambda: None
         self.on_socket_state_changed: Callable[[str, str], None] = lambda addr, state: None
-        
+
         # Testing/chaos properties
         self.simulate_latency = 0.0
         self.simulate_packet_loss = 0.0
@@ -189,7 +194,7 @@ class ServerNetworkEngine:
                 pass
 
         with self._lock:
-            for addr, (t, conn, proto) in self._clients.items():
+            for _addr, (_t, conn, _proto) in self._clients.items():
                 try:
                     conn.close()
                 except OSError:
@@ -211,7 +216,7 @@ class ServerNetworkEngine:
             None.
 
         Side Effects:
-            Closes the targeted socket. The connection handler thread will notice 
+            Closes the targeted socket. The connection handler thread will notice
             the closure and exit naturally.
 
         Failure Behavior:
@@ -246,10 +251,12 @@ class ServerNetworkEngine:
                             category=SecurityEventCategory.CONNECTION_REJECTED.value,
                             severity=SecuritySeverity.WARNING.value,
                             message="Maximum connections exceeded",
-                            client_address=addr_str
+                            client_address=addr_str,
                         )
                         self.on_security_alert(evt.to_dict())
-                        logger.warning("Rejected connection from %s (max_connections=%d)", addr_str, self.max_connections)
+                        logger.warning(
+                            "Rejected connection from %s (max_connections=%d)", addr_str, self.max_connections
+                        )
                         try:
                             conn.sendall(b"-ERR Maximum connections exceeded\n")
                             conn.close()
@@ -270,9 +277,9 @@ class ServerNetworkEngine:
                     addr_str=addr_str,
                     proto=proto,
                     dispatcher=self.dispatcher,
-                    shutdown_event=self._shutdown_event
+                    shutdown_event=self._shutdown_event,
                 )
-                
+
                 t = threading.Thread(
                     target=handler.handle,
                     daemon=True,

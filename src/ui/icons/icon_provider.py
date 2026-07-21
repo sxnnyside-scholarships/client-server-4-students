@@ -28,6 +28,7 @@ Expected Collaborators:
   `src.ui.widgets.*` (all icon-bearing widgets).
 """
 
+import logging
 import re
 from pathlib import Path
 
@@ -49,6 +50,7 @@ def _load_source(name: str) -> str | None:
         return _source_cache[name]
     path = _ICONS_DIR / f"{name}.svg"
     if not path.exists():
+        logging.warning("Missing vendored icon: %s", name)
         return None
     svg = path.read_text(encoding="utf-8")
     _source_cache[name] = svg

@@ -4,8 +4,8 @@ Package: src.network.server
 Purpose: Encapsulates the multi-threaded networking engines specifically required for the Server application.
 
 Architectural Role:
-Decomposes the massive server networking workload into highly cohesive components. 
-It cleanly separates the physical TCP socket loop (`engine.py`) from the logical 
+Decomposes the massive server networking workload into highly cohesive components.
+It cleanly separates the physical TCP socket loop (`engine.py`) from the logical
 command routing (`dispatcher.py`) and connection state (`connection.py`).
 
 Responsibilities:

@@ -4,7 +4,7 @@ Module: file_manager.py
 Purpose: Manages the server's per-user file storage and sandboxing.
 
 Architectural Role:
-Acts as the secure boundary between the host operating system's filesystem and the 
+Acts as the secure boundary between the host operating system's filesystem and the
 remote FTP-style commands coming from the network layer.
 
 Responsibilities:
@@ -25,8 +25,8 @@ class FileManager:
     Per-user sandboxed file storage engine.
 
     Why it exists:
-    Network clients cannot be trusted to provide safe absolute file paths. This class 
-    exists to translate untrusted relative string paths into safe absolute OS paths, 
+    Network clients cannot be trusted to provide safe absolute file paths. This class
+    exists to translate untrusted relative string paths into safe absolute OS paths,
     guaranteeing that clients cannot escape their designated storage folder.
 
     Responsibilities:
@@ -69,8 +69,8 @@ class FileManager:
         Safely resolves an untrusted relative path into an absolute OS path.
 
         # Educational Note: Path Traversal Protection
-        # We prevent attacks like `../../../etc/passwd` by fully resolving the requested 
-        # path using `resolve()` (which eliminates `..`), and then using `relative_to()` 
+        # We prevent attacks like `../../../etc/passwd` by fully resolving the requested
+        # path using `resolve()` (which eliminates `..`), and then using `relative_to()`
         # to strictly assert that the final path is a child of the intended user sandbox.
 
         Args:
@@ -245,16 +245,17 @@ class FileManager:
         """
         if not relative_path or relative_path == ".":
             return False  # Prevent deleting the sandbox root
-            
+
         target = self.resolve_path(username, relative_path)
         if target is None or not target.exists():
             return False
-            
+
         try:
             if target.is_file():
                 target.unlink()
             elif target.is_dir():
                 import shutil
+
                 shutil.rmtree(target)
             return True
         except OSError:
@@ -276,17 +277,17 @@ class FileManager:
             Mutates the host filesystem.
 
         Failure Behavior:
-            Returns False if either path is unsafe, the old file is missing, 
+            Returns False if either path is unsafe, the old file is missing,
             or the new file already exists (preventing overwrites).
         """
         old_target = self.resolve_path(username, old_rel)
         new_target = self.resolve_path(username, new_rel)
-        
+
         if old_target is None or new_target is None:
             return False
         if not old_target.exists() or new_target.exists():
             return False
-            
+
         try:
             old_target.rename(new_target)
             return True
@@ -309,27 +310,27 @@ class FileManager:
             Mutates the host filesystem. May create the destination directory if missing.
 
         Failure Behavior:
-            Returns False if paths are unsafe, or if the client attempts a circular move 
+            Returns False if paths are unsafe, or if the client attempts a circular move
             (e.g., moving a folder inside of itself).
         """
         src_target = self.resolve_path(username, rel_path)
         if src_target is None or not src_target.exists():
             return False
-            
+
         # The destination directory might not exist yet, but we must validate the path
         # by checking its parent or resolving it as if it exists.
         dest_dir_target = self.resolve_path(username, dest_dir_rel)
         if dest_dir_target is None:
             return False
-            
+
         # Prevent circular moves (e.g. moving a folder into itself)
         if dest_dir_target.is_relative_to(src_target):
             return False
-            
+
         dest_file_target = dest_dir_target / src_target.name
         if dest_file_target.exists():
             return False
-            
+
         try:
             dest_dir_target.mkdir(parents=True, exist_ok=True)
             src_target.rename(dest_file_target)

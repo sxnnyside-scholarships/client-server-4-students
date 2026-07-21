@@ -1,84 +1,99 @@
-# Contributing to Client-Server 4 Students (C4SS)
+# Contributing to Client-Server 4 Students
 
-First off — **thank you for wanting to contribute!** This project is developed by **Sxnnyside Scholarships** to help students learn, and every improvement, however small, makes that mission easier.
-
----
-
-## How Can I Contribute?
-
-### Reporting Bugs
-
-- Open a [GitHub Issue](../../issues) with a clear title.
-- Describe what you expected vs. what actually happened.
-- Include your OS, Python version, and PyQt6 version.
-- Add screenshots if the issue is visual.
-
-### Suggesting Enhancements
-
-We love ideas! Open an issue with the tag **enhancement** and explain:
-
-1. What the feature is.
-2. Why it helps students or teachers.
-3. A rough description of how it could work.
-
-> **Remember:** This project is intentionally simple. Proposals that add advanced or intimidating features may be politely declined to keep the learning curve smooth.
-
-### Submitting Code
-
-1. **Fork** the repository.
-2. Create a branch: `git checkout -b my-feature`.
-3. Make your changes following the coding guidelines below.
-4. Test your changes manually (start the server, connect the client, transfer a file).
-5. Commit with a clear message: `git commit -m "Add: description of change"`.
-6. Push to your fork and open a **Pull Request**.
+Contributions are welcome — bugs, fixes, features, or documentation.
+This document covers how to work with the project as a contributor.
 
 ---
 
-## Coding Guidelines
+## Before You Start
 
-| Guideline | Details |
-|---|---|
-| **Language** | Python 3.12+ |
-| **Style** | Follow PEP 8. Use type hints where reasonable. |
-| **Comments** | Write for students — be clear, avoid jargon. |
-| **Dependencies** | Do not add new libraries without discussion. |
-| **Locale strings** | Never hardcode UI text. Add keys to both `en.json` and `es.json`. |
-| **Themes** | Any new widget must look correct in both QSS themes. |
-
-### Commit Message Prefixes
-
-| Prefix | Use |
-|---|---|
-| `Add:` | New feature or file |
-| `Fix:` | Bug fix |
-| `Docs:` | Documentation only |
-| `Style:` | Code formatting, no logic change |
-| `Refactor:` | Code restructure, no behaviour change |
-| `i18n:` | Localization changes |
+- Search [existing issues](https://github.com/sxnnyside-scholarships/client-server-4-students/issues) before opening a new one.
+- For significant changes, open an issue first to discuss the direction before writing code.
+- Read the [Code of Conduct](CODE_OF_CONDUCT.md). It applies to all interactions in this project.
 
 ---
 
-## Adding a New Language
+## Reporting a Bug
 
-1. Copy `src/localization/en.json` to a new file (e.g. `fr.json`).
-2. Translate every value (keep the keys identical).
-3. Register the new code in `LocaleManager.SUPPORTED_LOCALES`.
-4. Open a PR!
+Open a [GitHub Issue](https://github.com/sxnnyside-scholarships/client-server-4-students/issues/new/choose) using the bug report template.
 
----
-
-## Code of Conduct
-
-All participants are expected to follow our [Code of Conduct](CODE_OF_CONDUCT.md). Be respectful, inclusive, and constructive.
+Include:
+- What you expected to happen
+- What actually happened
+- Steps to reproduce
+- Environment details (OS, runtime version, relevant config)
 
 ---
 
-## Questions?
+## Proposing a Feature
 
-If you're not sure whether something is worth contributing, open an issue and ask — we'd rather help you get started than miss a good idea.
+Open a [GitHub Issue](https://github.com/sxnnyside-scholarships/client-server-4-students/issues/new/choose) using the feature request template, or submit a PR directly if the change is small and self-contained.
 
-**Contact:** [support.sxnnyside@sxnnysideproject.com](mailto:support.sxnnyside@sxnnysideproject.com)
+For larger features, an issue discussion first avoids wasted effort on both sides.
 
-**Website:** [https://www.sxnnysideproject.com](https://www.sxnnysideproject.com)
+---
 
-Happy coding!
+## Workflow
+
+1. Fork the repository and create a branch from `main`.
+2. Name your branch descriptively — `fix/crash-on-empty-input`, `feat/offline-mode`.
+3. Make your changes.
+4. Open a pull request against `main` with a clear description of what changed and why.
+
+---
+
+## Pull Request Checklist
+
+Before submitting:
+
+- [ ] The project builds without errors
+- [ ] Changes are described in [CHANGELOG.md](CHANGELOG.md) under `[Unreleased]`
+- [ ] The PR description explains what changed and why
+- [ ] New behavior is covered by tests where applicable
+
+---
+
+## Commit Style
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/). Every commit message must follow the format:
+
+```
+<type>: <description>
+
+[optional body]
+[optional footer]
+```
+
+Accepted types:
+
+| Type       | Use for                                          |
+|------------|--------------------------------------------------|
+| `feat`     | New functionality                                |
+| `fix`      | Bug fixes                                        |
+| `docs`     | Documentation only                               |
+| `style`    | Formatting, whitespace — no logic changes        |
+| `refactor` | Code restructure without behavior change         |
+| `test`     | Adding or updating tests                         |
+| `chore`    | Build process, tooling, dependencies             |
+| `perf`     | Performance improvements                         |
+
+Examples:
+
+```
+feat: add offline fallback for config reads
+fix: prevent crash when scripts directory is missing
+docs: update installation steps for cross-compilation
+chore: bump dependencies to latest stable
+```
+
+Commits that don't follow this format will be flagged during review.
+
+---
+
+## Questions
+
+If something in the codebase is unclear, open an issue with the `question` label before assuming it's a bug.
+
+---
+
+*Client-Server 4 Students is A Sxnnyside Scholarships Project. Part of the [Sxnnyside Project](https://sxnnysideproject.com).*

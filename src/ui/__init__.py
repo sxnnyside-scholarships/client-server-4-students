@@ -4,8 +4,8 @@ Package: src.ui
 Purpose: Provides all graphical user interface (GUI) windows and dialogs for the CS4S application.
 
 Architectural Role:
-Acts as the presentation layer. This package is strictly forbidden from directly executing 
-network I/O or disk I/O. It instantiates backend components via Dependency Injection and 
+Acts as the presentation layer. This package is strictly forbidden from directly executing
+network I/O or disk I/O. It instantiates backend components via Dependency Injection and
 interacts with them entirely through PyQt6 signals and slots.
 
 Responsibilities:

@@ -4,8 +4,8 @@ Module: test_protocol.py
 Purpose: Validates the complete client-server communication lifecycle.
 
 Architectural Role:
-Acts as the highest-level integration test suite for the networking stack. It 
-spawns a real server bound to a localhost socket and exercises the client facade, 
+Acts as the highest-level integration test suite for the networking stack. It
+spawns a real server bound to a localhost socket and exercises the client facade,
 ensuring that string parsing, thread locks, and Qt signals all cooperate cleanly.
 
 Responsibilities:
@@ -21,7 +21,6 @@ Expected Collaborators:
 
 from src.network.client_backend import ClientBackend
 from src.network.server_backend import ServerBackend
-from src.network.transfer_state import TransferState
 
 
 def test_rtt_measurement(qtbot, server_backend: ServerBackend, client_backend: ClientBackend):
@@ -95,10 +94,10 @@ def test_successful_connection_and_auth(qtbot, server_backend: ServerBackend, cl
         Fails if the `connected` or `auth_success` signals are not emitted within 2000ms.
     """
     port = server_backend.engine._socket.getsockname()[1]
-    
+
     with qtbot.waitSignals([client_backend.connected, client_backend.auth_success], timeout=2000):
         client_backend.connect_to_server("127.0.0.1", port, "testuser", "testpass")
-        
+
     assert client_backend.is_connected is True
 
 
@@ -121,11 +120,15 @@ def test_auth_failure_disconnects(qtbot, server_backend: ServerBackend, client_b
         Fails if the `auth_failed` signal is not emitted within 2000ms.
     """
     port = server_backend.engine._socket.getsockname()[1]
-    
+
     with qtbot.waitSignal(client_backend.auth_failed, timeout=2000) as blocker:
         client_backend.connect_to_server("127.0.0.1", port, "testuser", "wrongpassword")
-        
-    assert "AuthFailed" in blocker.args[0] or "Failed authentication" in blocker.args[0] or type(blocker.args[0]) == str
+
+    assert (
+        "AuthFailed" in blocker.args[0]
+        or "Failed authentication" in blocker.args[0]
+        or isinstance(blocker.args[0], str)
+    )
     assert client_backend.is_connected is False
 
 
@@ -152,32 +155,32 @@ def test_file_upload_download(qtbot, server_backend: ServerBackend, client_backe
     """
     port = server_backend.engine._socket.getsockname()[1]
     client_backend.connect_to_server("127.0.0.1", port, "testuser", "testpass")
-    
+
     qtbot.waitUntil(lambda: client_backend.is_connected)
-    
+
     # Create a dummy file
     local_source = tmp_path / "source.txt"
     local_source.write_text("Hello, CS4S!")
-    
+
     remote_name = "uploaded_file.txt"
-    
+
     # Wait for the upload complete signal
     with qtbot.waitSignal(client_backend.upload_complete, timeout=5000):
         client_backend.upload_file(str(local_source), remote_name)
-        
+
     # Verify file is in the server's sandbox
     sandbox_file = server_backend.files.get_file_path("testuser", remote_name)
     assert sandbox_file.exists()
     assert sandbox_file.read_text() == "Hello, CS4S!"
-    
+
     # Download the file back
     local_dest = tmp_path / "dest.txt"
     with qtbot.waitSignal(client_backend.download_complete, timeout=5000):
         client_backend.download_file(remote_name, str(local_dest))
-        
+
     assert local_dest.exists()
     assert local_dest.read_text() == "Hello, CS4S!"
-    
+
     client_backend.disconnect()
 
 

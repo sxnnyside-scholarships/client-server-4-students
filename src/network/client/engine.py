@@ -4,9 +4,9 @@ Module: engine.py
 Purpose: Manages outbound TCP connections and raw socket operations.
 
 Architectural Role:
-This is the foundational layer of the client network stack. It abstracts away 
-Python's standard `socket` library, providing a callback-based interface that 
-upper layers (`operations.py`, `transfers.py`) can use to communicate without 
+This is the foundational layer of the client network stack. It abstracts away
+Python's standard `socket` library, providing a callback-based interface that
+upper layers (`operations.py`, `transfers.py`) can use to communicate without
 writing raw byte arrays.
 
 Responsibilities:
@@ -35,13 +35,14 @@ from src.core.protocol import (
 )
 from src.network.errors import NetworkError, map_socket_error
 
+
 class ClientConnectionEngine:
     """
     Manages socket lifecycle, connection state, and synchronization locks.
 
     Why it exists:
-    Raw socket operations block the thread they run on. This engine isolates that 
-    complexity into a background thread, ensuring the GUI remains responsive while 
+    Raw socket operations block the thread they run on. This engine isolates that
+    complexity into a background thread, ensuring the GUI remains responsive while
     connecting, authenticating, or failing.
 
     Responsibilities:
@@ -62,7 +63,9 @@ class ClientConnectionEngine:
         self._transfers_lock = threading.Lock()
         self._active_transfers: dict[str, threading.Event] = {}
         self._shutdown_event = threading.Event()
-        
+
+        self.enable_tls = False
+
         # Callbacks
         self.on_connected: Callable[[], None] = lambda: None
         self.on_disconnected: Callable[[], None] = lambda: None
@@ -72,7 +75,7 @@ class ClientConnectionEngine:
         self.on_connection_recovering: Callable[[int, int], None] = lambda x, y: None
         self.on_status_message: Callable[[str], None] = lambda x: None
         self.on_capabilities_discovered: Callable[[list], None] = lambda x: None
-        
+
         self.on_packet_tx: Callable[[str], None] = lambda x: None
         self.on_packet_rx: Callable[[str], None] = lambda x: None
 
@@ -163,7 +166,7 @@ class ClientConnectionEngine:
     def _do_connect(self, host: str, port: int, user: str, pwd: str):
         self._shutdown_event.clear()
         max_attempts = 3
-        
+
         for attempt in range(1, max_attempts + 1):
             if self._shutdown_event.is_set():
                 return
@@ -171,26 +174,33 @@ class ClientConnectionEngine:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 sock.settimeout(5.0)
                 sock.connect((host, port))
+
+                if self.enable_tls:
+                    import ssl
+
+                    # Use unverified context for educational self-signed certificates
+                    context = ssl._create_unverified_context()
+                    sock = context.wrap_socket(sock, server_hostname=host)
+
                 self._socket = sock
-                self._proto = ProtocolHandler(
-                    sock, 
-                    on_tx=self.on_packet_tx, 
-                    on_rx=self.on_packet_rx
-                )
+                self._proto = ProtocolHandler(sock, on_tx=self.on_packet_tx, on_rx=self.on_packet_rx)
+                if self.enable_tls:
+                    self._proto.is_tls = True
+
                 self._connected = True
-                
+
                 # Protocol Handshake
                 self._socket.settimeout(5.0)
                 self._proto.send_message(CMD_HELLO, PROTOCOL_VERSION)
                 resp = self._proto.recv_message()
-                
+
                 if resp[0] != str(CODE_GREETING):
                     err_msg = resp[2] if len(resp) > 2 else "Version mismatch"
                     self.on_error_occurred(NetworkError.PROTOCOL_ERROR.value, err_msg)
                     self._connected = False
                     self.on_disconnected()
                     return
-                
+
                 # Parse capabilities
                 caps = []
                 for part in resp[3:]:
@@ -198,7 +208,7 @@ class ClientConnectionEngine:
                         caps = part.split(":")[1].split(",")
                 if caps:
                     self.on_capabilities_discovered(caps)
-                
+
                 # Authenticate
                 self._proto.send_message(CMD_AUTH, user, pwd)
                 resp = self._proto.recv_message()
@@ -225,6 +235,7 @@ class ClientConnectionEngine:
                 if attempt < max_attempts:
                     self.on_connection_recovering(attempt, max_attempts)
                     import time
+
                     time.sleep(attempt)
                 else:
                     err_code = map_socket_error(exc).value
@@ -252,10 +263,10 @@ class ClientConnectionEngine:
         """
         if not self._connected:
             return
-            
+
         self._connected = False
         self._shutdown_event.set()
-        
+
         try:
             if self._lock.acquire(timeout=2.0):
                 try:

@@ -4,7 +4,7 @@ Package: src.ui.widgets
 Purpose: Provides reusable, self-contained GUI components that are assembled into larger windows.
 
 Architectural Role:
-Acts as a component library. By decomposing complex windows into isolated widgets, 
+Acts as a component library. By decomposing complex windows into isolated widgets,
 the UI layer remains modular, testable, and free of massive monolithic layouts.
 
 Responsibilities:
@@ -22,13 +22,13 @@ Expected Collaborators:
 """
 
 from .atoms import (
-    MintButton,
-    MintTextInput,
-    MintStepper,
-    MintDropdown,
-    MintModeCard,
-    EmptyStateWidget,
-    MintCheckbox,
-    MintIconButton,
-    Breadcrumb,
+    MintButton as MintButton,
+    MintTextInput as MintTextInput,
+    MintStepper as MintStepper,
+    MintDropdown as MintDropdown,
+    MintModeCard as MintModeCard,
+    EmptyStateWidget as EmptyStateWidget,
+    MintCheckbox as MintCheckbox,
+    MintIconButton as MintIconButton,
+    Breadcrumb as Breadcrumb,
 )

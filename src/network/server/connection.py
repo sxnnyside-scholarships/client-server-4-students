@@ -4,8 +4,8 @@ Module: connection.py
 Purpose: Manages the lifecycle and read loop for a single client connection.
 
 Architectural Role:
-Acts as the isolated execution context for a single connected socket. By running 
-in its own daemon thread, it ensures that one slow or malicious client cannot 
+Acts as the isolated execution context for a single connected socket. By running
+in its own daemon thread, it ensures that one slow or malicious client cannot
 block other students from communicating with the server.
 
 Responsibilities:
@@ -40,13 +40,14 @@ from src.network.security import SecurityContext
 
 logger = logging.getLogger("server.connection")
 
+
 class ClientConnectionHandler:
     """
     Stateful execution thread for a connected client.
 
     Why it exists:
-    The server must handle dozens of simultaneous connections. This class encapsulates 
-    all the local state (username, security context, protocol handler) required to 
+    The server must handle dozens of simultaneous connections. This class encapsulates
+    all the local state (username, security context, protocol handler) required to
     service a single client concurrently.
 
     Responsibilities:
@@ -65,7 +66,7 @@ class ClientConnectionHandler:
         addr_str: str,
         proto: ProtocolHandler,
         dispatcher,
-        shutdown_event: threading.Event
+        shutdown_event: threading.Event,
     ):
         self.engine = engine
         self.conn = conn
@@ -95,7 +96,28 @@ class ClientConnectionHandler:
         """
         sec_ctx = SecurityContext(self.addr_str)
         username: str | None = None
-        
+
+        # Optional TLS Wrapping
+        if getattr(self.engine, "enable_tls", False):
+            try:
+                import ssl
+
+                context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                context.load_cert_chain(certfile=self.engine.cert_file, keyfile=self.engine.key_file)
+                self.conn = context.wrap_socket(self.conn, server_side=True)
+                self.proto.sock = self.conn
+                self.proto.is_tls = True
+                self.engine.on_log_message(f"TLS connection established with {self.addr_str}")
+            except Exception as exc:
+                logger.error("TLS handshake failed for %s: %s", self.addr_str, exc)
+                self.engine.on_log_message(f"TLS handshake failed: {exc}")
+                try:
+                    self.conn.close()
+                except OSError:
+                    pass
+                self.engine.remove_client(self.addr_str)
+                return
+
         try:
             # Protocol Handshake
             try:
@@ -118,26 +140,26 @@ class ClientConnectionHandler:
                     break
                 except ConnectionError:
                     break
-                
+
                 if not parts:
                     break
-                    
+
                 # [Teacher Mode] Chaos Interceptor
-                if getattr(self.engine, 'simulate_latency', 0.0) > 0:
+                if getattr(self.engine, "simulate_latency", 0.0) > 0:
                     time.sleep(self.engine.simulate_latency)
 
-                if getattr(self.engine, 'simulate_packet_loss', 0.0) > 0:
+                if getattr(self.engine, "simulate_packet_loss", 0.0) > 0:
                     if random.random() < self.engine.simulate_packet_loss:
                         self.engine.on_log_message(f"[Teacher Mode] Dropped packet from {self.addr_str}")
                         continue
 
                 cmd = parts[0].upper()
-                
+
                 # Dispatch the command
                 should_disconnect, username = self.dispatcher.dispatch(
                     cmd, parts, self.proto, username, sec_ctx, self.engine
                 )
-                
+
                 if should_disconnect:
                     break
 

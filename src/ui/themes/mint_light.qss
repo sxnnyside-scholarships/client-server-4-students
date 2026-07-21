@@ -33,7 +33,7 @@
 QWidget {
     background-color: #F7F8FA;
     color: #2D3436;
-    font-family: "Inter", "Segoe UI", "SF Pro Text", system-ui, sans-serif;
+    font-family: "Segoe UI", "SF Pro Text", system-ui, sans-serif;
     font-size: 13px;
 }
 

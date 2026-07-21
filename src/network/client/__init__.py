@@ -4,7 +4,7 @@ Package: src.network.client
 Purpose: Encapsulates the multi-threaded networking engines specifically required for the Client application.
 
 Architectural Role:
-Decomposes the massive client networking workload into cohesive, single-responsibility 
+Decomposes the massive client networking workload into cohesive, single-responsibility
 engines. This sub-package sits beneath `ClientBackend` (which acts as a unified facade).
 
 Responsibilities:

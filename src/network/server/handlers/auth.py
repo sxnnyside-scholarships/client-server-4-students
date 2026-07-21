@@ -4,7 +4,7 @@ Module: auth.py
 Purpose: Validates client credentials against the server's authentication storage.
 
 Architectural Role:
-Acts as the execution handler for the `CMD_AUTH` protocol command. It sits between 
+Acts as the execution handler for the `CMD_AUTH` protocol command. It sits between
 the `CommandDispatcher` (which routed the request) and the `AuthManager` (which checks the disk).
 
 Responsibilities:
@@ -43,13 +43,14 @@ from src.storage.auth import AuthManager
 
 logger = logging.getLogger("server.auth")
 
+
 class AuthCommandHandler:
     """
     Executes the authentication phase of the client-server protocol.
 
     Why it exists:
-    Because authentication logic involves reading from disk and updating rate-limit 
-    counters, it is too complex to sit inside the main dispatch switch statement. 
+    Because authentication logic involves reading from disk and updating rate-limit
+    counters, it is too complex to sit inside the main dispatch switch statement.
     Isolating it makes security auditing easier.
 
     Responsibilities:
@@ -82,40 +83,40 @@ class AuthCommandHandler:
             Sends a protocol response over the socket.
 
         Failure Behavior:
-            Returns `(None, True)` if the client exceeds the brute-force threshold, 
+            Returns `(None, True)` if the client exceeds the brute-force threshold,
             signaling the dispatcher to sever the connection.
         """
         if len(parts) < 3:
             proto.send_message(CODE_BAD_REQ, STATUS_ERROR, AUTH_FAIL)
             drop = sec_ctx.record_auth_failure()
             return None, drop
-            
+
         user, pwd = parts[1], parts[2]
-        
+
         if not is_valid_username(user):
             proto.send_message(CODE_BAD_REQ, STATUS_ERROR, AUTH_FAIL)
             evt = SecurityEvent(
                 category=SecurityEventCategory.MALFORMED_INPUT.value,
                 severity=SecuritySeverity.WARNING.value,
                 message=f"Invalid username format: {user}",
-                client_address=sec_ctx.client_address
+                client_address=sec_ctx.client_address,
             )
             engine.on_security_alert(evt.to_dict())
             drop = sec_ctx.record_auth_failure()
             return None, drop
-            
+
         if self.auth.verify(user, pwd):
             proto.send_message(CODE_AUTH_OK, STATUS_OK, AUTH_OK)
             engine.on_log_message(f"User '{user}' authenticated")
             logger.info("User '%s' authenticated", user)
             return user, False
-            
+
         proto.send_message(CODE_AUTH_FAIL, STATUS_ERROR, AUTH_FAIL)
         evt = SecurityEvent(
             category=SecurityEventCategory.AUTH_FAILURE.value,
             severity=SecuritySeverity.INFO.value,
             message=f"Failed authentication for user: {user}",
-            client_address=sec_ctx.client_address
+            client_address=sec_ctx.client_address,
         )
         engine.on_security_alert(evt.to_dict())
         engine.on_log_message(f"Auth failed for '{user}'")

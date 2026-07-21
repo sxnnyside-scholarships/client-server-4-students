@@ -59,11 +59,18 @@ def server_window(qtbot, mocker, qapp):
     runtime_mock.logs_dir = "/tmp"
 
     from src.network.server_backend import ServerBackend
+
     real_backend = ServerBackend(auth_mock, files_mock)
 
     window = ServerWindow(
-        config_mock, locale_mock, theme_mock, qapp,
-        auth=auth_mock, files=files_mock, backend=real_backend, runtime=runtime_mock,
+        config_mock,
+        locale_mock,
+        theme_mock,
+        qapp,
+        auth=auth_mock,
+        files=files_mock,
+        backend=real_backend,
+        runtime=runtime_mock,
     )
 
     qtbot.addWidget(window)

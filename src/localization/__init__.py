@@ -4,8 +4,8 @@ Package: src.localization
 Purpose: Provides multi-language support (i18n) and string management for the application's graphical user interfaces.
 
 Architectural Role:
-Acts as a centralized string repository. Instead of hardcoding English text into UI widgets, 
-all visible text is fetched dynamically through this package, allowing the application to 
+Acts as a centralized string repository. Instead of hardcoding English text into UI widgets,
+all visible text is fetched dynamically through this package, allowing the application to
 swap languages at runtime.
 
 Responsibilities:

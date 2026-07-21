@@ -4,7 +4,7 @@ Module: test_security.py
 Purpose: Validates deterministic behavior of input sanitization and rate limit systems.
 
 Architectural Role:
-Unit testing for the `security.py` module. 
+Unit testing for the `security.py` module.
 
 Responsibilities:
 - Verify that `is_valid_username` correctly blocks traversal attacks (`../`).
@@ -38,7 +38,7 @@ def test_is_valid_username():
     assert is_valid_username("valid-name_") is True
     assert is_valid_username("abc") is True
     assert is_valid_username("a" * 32) is True
-    
+
     assert is_valid_username("") is False
     assert is_valid_username("ab") is False  # too short
     assert is_valid_username("a" * 33) is False  # too long
@@ -65,14 +65,14 @@ def test_security_context_rate_limits(mocker):
         Fails if the context object returns False on the 5th bad auth attempt.
     """
     mocker.patch("time.sleep")
-    
+
     ctx = SecurityContext("127.0.0.1")
-    
+
     # 5 auth failures drops the connection
     for _ in range(4):
         assert ctx.record_auth_failure() is False
     assert ctx.record_auth_failure() is True
-    
+
     # 10 invalid commands drops the connection
     ctx2 = SecurityContext("127.0.0.1")
     for _ in range(9):

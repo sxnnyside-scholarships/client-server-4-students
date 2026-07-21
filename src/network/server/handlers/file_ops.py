@@ -4,7 +4,7 @@ Module: file_ops.py
 Purpose: Executes rapid, synchronous filesystem operations (LIST, MKDIR, DELETE).
 
 Architectural Role:
-Acts as the execution handler for synchronous file management commands. It bridges 
+Acts as the execution handler for synchronous file management commands. It bridges
 the network protocol layer with the secure sandbox layer provided by `FileManager`.
 
 Responsibilities:
@@ -32,13 +32,14 @@ from src.storage.file_manager import FileManager
 
 logger = logging.getLogger("server.file_ops")
 
+
 class FileOpsHandler:
     """
     Groups handlers for short-lived, synchronous filesystem commands.
 
     Why it exists:
-    By grouping non-streaming commands together, we avoid polluting the transfer 
-    handlers with simple tasks like renaming a file. This class expects all of its 
+    By grouping non-streaming commands together, we avoid polluting the transfer
+    handlers with simple tasks like renaming a file. This class expects all of its
     operations to return immediately.
 
     Responsibilities:
@@ -139,7 +140,7 @@ class FileOpsHandler:
             proto.send_message(CODE_BAD_REQ, STATUS_ERROR, "Missing filename")
             return
         filename = parts[1]
-        
+
         if self.files.delete(user, filename):
             proto.send_message(CODE_ACTION_OK, STATUS_OK, "Deleted")
         else:
@@ -169,7 +170,7 @@ class FileOpsHandler:
             proto.send_message(CODE_BAD_REQ, STATUS_ERROR, "Missing arguments")
             return
         old_name, new_name = parts[1], parts[2]
-        
+
         if self.files.rename(user, old_name, new_name):
             proto.send_message(CODE_ACTION_OK, STATUS_OK, "Renamed")
         else:
@@ -199,7 +200,7 @@ class FileOpsHandler:
             proto.send_message(CODE_BAD_REQ, STATUS_ERROR, "Missing arguments")
             return
         filename, dest_dir = parts[1], parts[2]
-        
+
         if self.files.move(user, filename, dest_dir):
             proto.send_message(CODE_ACTION_OK, STATUS_OK, "Moved")
         else:

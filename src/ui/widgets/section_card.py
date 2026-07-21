@@ -21,10 +21,9 @@ Expected Collaborators:
   from this instead of `QGroupBox`).
 """
 
-from PyQt6.QtCore import QRectF, Qt
+from PyQt6.QtCore import QRectF
 from PyQt6.QtGui import QColor, QPainter, QPainterPath, QPen
-from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QLabel, QVBoxLayout, QWidget
-
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QGraphicsDropShadowEffect
 from src.ui.themes.tokens import sage_color, surface_colors, RADIUS, accent_color
 
 _CARD_RADIUS = RADIUS["lg"]
@@ -58,21 +57,30 @@ class SectionCard(QWidget):
         colors = surface_colors(theme_name)
         self._surface = QColor(colors["surface"])
         self._border = QColor(colors["border"])
-        self._accent_color = QColor(
-            sage_color(theme_name) if accent == "sage" else accent_color(theme_name)
-        )
+        self._accent_color = QColor(sage_color(theme_name) if accent == "sage" else accent_color(theme_name))
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(ACCENT_BAR_WIDTH + 13, 16, 16, 14)
         outer.setSpacing(8)
 
+        self.header_layout = QHBoxLayout()
+        self.header_layout.setContentsMargins(0, 0, 0, 0)
+        self.header_layout.setSpacing(8)
+
         self._title_label = QLabel()
         self._title_label.setObjectName("sectionCardTitle")
         self._title_label.setStyleSheet(
-            f"color: {self._accent_color.name()}; font-weight: 700; "
-            "font-size: 11px; background: transparent;"
+            f"color: {self._accent_color.name()}; font-weight: 700; font-size: 11px; background: transparent;"
         )
-        outer.addWidget(self._title_label)
+        self.header_layout.addWidget(self._title_label)
+        self.header_layout.addStretch()
+
+        self.header_actions_layout = QHBoxLayout()
+        self.header_actions_layout.setContentsMargins(0, 0, 0, 0)
+        self.header_actions_layout.setSpacing(4)
+        self.header_layout.addLayout(self.header_actions_layout)
+
+        outer.addLayout(self.header_layout)
 
         self.content_layout = QVBoxLayout()
         self.content_layout.setContentsMargins(0, 0, 0, 0)
@@ -118,7 +126,9 @@ class SectionCard(QWidget):
         painter.drawPath(path)
 
         accent_rect = QRectF(
-            rect.left(), rect.top() + _CARD_RADIUS,
-            ACCENT_BAR_WIDTH, rect.height() - 2 * _CARD_RADIUS,
+            rect.left(),
+            rect.top() + _CARD_RADIUS,
+            ACCENT_BAR_WIDTH,
+            rect.height() - 2 * _CARD_RADIUS,
         )
         painter.fillRect(accent_rect, self._accent_color)

@@ -15,7 +15,7 @@
 QWidget {
     background-color: @BACKGROUND@;
     color: @TEXT@;
-    font-family: "Inter", "Roboto", "Segoe UI", system-ui, sans-serif;
+    font-family: "Roboto", "Segoe UI", system-ui, sans-serif;
     font-size: 13px;
 }
 

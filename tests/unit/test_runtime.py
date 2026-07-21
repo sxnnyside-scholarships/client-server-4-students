@@ -4,7 +4,7 @@ Module: test_runtime.py
 Purpose: Validates OS path resolution and portable mode toggles.
 
 Architectural Role:
-Unit testing for the `RuntimeEnvironment` component. Ensures that configuration 
+Unit testing for the `RuntimeEnvironment` component. Ensures that configuration
 and log data lands in the correct XDG/APPDATA/Library locations on different OSs.
 
 Responsibilities:
@@ -18,7 +18,6 @@ Expected Collaborators:
 """
 
 import os
-import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -43,7 +42,7 @@ def test_portable_mode(tmp_path):
     """
     # Create the .portable marker
     (tmp_path / ".portable").touch()
-    
+
     runtime = RuntimeEnvironment(tmp_path)
     assert runtime.is_portable is True
     assert runtime.data_dir == tmp_path / "runtime"
@@ -137,16 +136,16 @@ def test_bootstrap_migration(tmp_path):
     # Create legacy data
     (tmp_path / "config").mkdir()
     (tmp_path / "config" / "settings.json").touch()
-    
+
     # We will simulate Windows migration
     with patch("sys.platform", "win32"), patch.dict(os.environ, {"APPDATA": str(tmp_path / "AppData")}):
         runtime = RuntimeEnvironment(tmp_path)
         runtime.bootstrap()
-        
+
         # New directory should be created
         assert (tmp_path / "AppData" / "CS4S" / "config").exists()
         assert (tmp_path / "AppData" / "CS4S" / "config" / "settings.json").exists()
-        
+
         # Legacy directory should be renamed
         assert not (tmp_path / "config").exists()
         assert (tmp_path / "config.migrated").exists()

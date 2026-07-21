@@ -4,8 +4,8 @@ Package: src.network
 Purpose: Contains all client and server networking infrastructure, protocol parsing, and security validation logic.
 
 Architectural Role:
-This is the core execution engine of the application. It acts as the bridge between the 
-host OS's TCP sockets and the application's internal data structures. It strictly isolates 
+This is the core execution engine of the application. It acts as the bridge between the
+host OS's TCP sockets and the application's internal data structures. It strictly isolates
 blocking I/O operations (like socket reads/writes) from the main GUI thread.
 
 Responsibilities:

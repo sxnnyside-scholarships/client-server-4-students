@@ -29,6 +29,15 @@ copy of the library. Source paths (relative to `mingcute-icons/svg/`):
 | `folder.svg` | `file/folder_line.svg` |
 | `leaf.svg` | `nature/leaf_line.svg` |
 | `grass.svg` | `nature/grass_line.svg` |
+| `server.svg` | `device/server_line.svg` |
+| `users.svg` | `user/group_line.svg` |
+| `document.svg` | `file/document_line.svg` |
+| `chevron-down.svg` | `arrow/down_line.svg` |
+| `home.svg` | `building/home_3_line.svg` |
+| `plus.svg` | `system/add_line.svg` |
+| `minus.svg` | `system/minimize_line.svg` |
+| `pause.svg` | `media/pause_line.svg` |
+| `eraser.svg` | `editor/eraser_line.svg` |
 
 Each file ships with a single fixed fill color (`#09244B`) on its visible path.
 `src/ui/icons/icon_provider.py` substitutes that fill at render time so the

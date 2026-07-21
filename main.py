@@ -4,8 +4,8 @@ Module: main.py
 Purpose: The primary entry point for launching the CS4S application.
 
 Architectural Role:
-Acts as the root bootstrapper. It initializes the Qt Application event loop, 
-resolves the runtime environment (portable vs OS-native), instantiates core 
+Acts as the root bootstrapper. It initializes the Qt Application event loop,
+resolves the runtime environment (portable vs OS-native), instantiates core
 managers (Config, Locale, Theme), and launches the `LauncherWindow`.
 
 Responsibilities:
@@ -25,20 +25,19 @@ import sys
 from pathlib import Path
 from PyQt6.QtCore import QLibraryInfo
 
-os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = \
-    QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.path(QLibraryInfo.LibraryPath.PluginsPath)
 
 from PyQt6.QtWidgets import QApplication
 
 # Ensure the project root is importable
 PROJECT_ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(PROJECT_ROOT))
+sys.path.insert(0, str(PROJECT_ROOT))  # noqa: E402
 
-from src.core.config import ConfigManager
-from src.core.runtime import RuntimeEnvironment
-from src.localization.locale_manager import LocaleManager
-from src.ui.launcher import LauncherWindow
-from src.ui.themes.theme_manager import ThemeManager
+from src.core.config import ConfigManager  # noqa: E402
+from src.core.runtime import RuntimeEnvironment  # noqa: E402
+from src.localization.locale_manager import LocaleManager  # noqa: E402
+from src.ui.launcher import LauncherWindow  # noqa: E402
+from src.ui.themes.theme_manager import ThemeManager  # noqa: E402
 
 
 def main():

@@ -80,7 +80,7 @@ PALETTES = {
         "@BORDER_DISABLED@": "#262D3D",
         "@DANGER@": "#E17055",
         "@DANGER_HOVER@": "#D63031",
-    }
+    },
 }
 
 # 8px base spacing unit — see docs/DESIGN_SYSTEM.md § Spacing Scale.
@@ -154,6 +154,19 @@ ICON_COLORS = {
         "muted": "#4A5568",
     },
 }
+
+
+def text_color(theme_name: str, variant: str = "primary") -> str:
+    palette = PALETTES.get(theme_name, PALETTES["mint_light"])
+    key_map = {
+        "primary": "@TEXT@",
+        "secondary": "@TEXT_SECONDARY@",
+        "muted": "@TEXT_MUTED@",
+        "disabled": "@TEXT_DISABLED@",
+        "on-accent": "@TEXT_ON_ACCENT@",
+    }
+    key = key_map.get(variant, "@TEXT@")
+    return palette.get(key, palette["@TEXT@"])
 
 
 def icon_color(theme_name: str, role: str = "default") -> str:
@@ -279,3 +292,30 @@ def surface_colors(theme_name: str) -> dict:
         Falls back to `mint_light` if the theme is unknown.
     """
     return SURFACE_COLORS.get(theme_name, SURFACE_COLORS["mint_light"])
+
+
+def console_colors(theme_name: str) -> dict:
+    """
+    Resolves the semantic text colors for the Protocol Inspector console.
+
+    Args:
+        theme_name: One of `ThemeManager.THEMES` keys.
+
+    Returns:
+        A dict with "tx", "rx", "encrypted", and "muted" hex color keys,
+        guaranteed to provide >=4.5:1 contrast against the log surface.
+    """
+    if theme_name == "mint_dark":
+        return {
+            "tx": "#45B7A0",  # Accent
+            "rx": "#9CB88F",  # Sage
+            "encrypted": "#E8B84B",  # Status connecting (amber)
+            "muted": "#8A94A6",  # Text secondary
+        }
+    else:
+        return {
+            "tx": "#2F9C86",  # Deep mint
+            "rx": "#7C9473",  # Sage
+            "encrypted": "#E1A73C",  # Status connecting (amber)
+            "muted": "#636E72",  # Text secondary
+        }

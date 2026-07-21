@@ -4,8 +4,8 @@ Module: operations.py
 Purpose: Executes fast, synchronous client-server commands (LIST, MKDIR, DELETE).
 
 Architectural Role:
-Acts as the Remote Procedure Call (RPC) layer for the client. It handles operations 
-that are expected to return immediately, utilizing the connection lock to prevent 
+Acts as the Remote Procedure Call (RPC) layer for the client. It handles operations
+that are expected to return immediately, utilizing the connection lock to prevent
 command collision on the shared TCP socket.
 
 Responsibilities:
@@ -30,13 +30,14 @@ from src.core.protocol import (
 )
 from src.network.errors import NetworkError, map_socket_error
 
+
 class ClientOperations:
     """
     Handles standard fast, synchronous command-response pairs.
 
     Why it exists:
-    Separating these quick operations from slow file transfers (`transfers.py`) 
-    prevents the codebase from becoming a tangled "god object" of commands. 
+    Separating these quick operations from slow file transfers (`transfers.py`)
+    prevents the codebase from becoming a tangled "god object" of commands.
     It ensures the UI can list directories cleanly without worrying about threading.
 
     Responsibilities:
@@ -50,7 +51,7 @@ class ClientOperations:
 
     def __init__(self, engine):
         self.engine = engine
-        
+
         # Callbacks
         self.on_file_list_received: Callable[[list], None] = lambda x: None
         self.on_directory_created: Callable[[], None] = lambda: None
@@ -194,7 +195,7 @@ class ClientOperations:
             None.
         """
         self.engine.run_in_background(self._do_action_bg, cmd, *args)
-        
+
     def _do_action_bg(self, cmd: str, *args):
         with self.engine.lock:
             if not self.engine.is_connected or not self.engine.proto or self.engine.shutdown_event.is_set():

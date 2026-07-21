@@ -4,8 +4,8 @@ Module: transfer.py
 Purpose: Executes long-running byte streams for UPLOAD and DOWNLOAD commands.
 
 Architectural Role:
-Acts as the execution handler for streaming operations. Unlike `file_ops`, these 
-methods block the thread while reading/writing megabytes of data in chunks. 
+Acts as the execution handler for streaming operations. Unlike `file_ops`, these
+methods block the thread while reading/writing megabytes of data in chunks.
 They directly interact with the raw socket bypassing the normal string message protocol.
 
 Responsibilities:
@@ -38,12 +38,13 @@ from src.storage.file_manager import FileManager
 
 logger = logging.getLogger("server.transfer")
 
+
 class TransferHandler:
     """
     Executes binary file transfers directly over the protocol socket.
 
     Why it exists:
-    A 1GB file cannot be read into RAM all at once. This handler implements 
+    A 1GB file cannot be read into RAM all at once. This handler implements
     buffered byte streaming to keep memory usage flat, regardless of file size.
 
     Responsibilities:
@@ -105,7 +106,7 @@ class TransferHandler:
             with open(target_path, "wb") as fh:
                 while received < size:
                     # In ServerNetworkEngine, we check engine._shutdown_event
-                    if getattr(engine, '_shutdown_event').is_set():
+                    if engine._shutdown_event.is_set():
                         raise ConnectionAbortedError("Server shutting down")
                     want = min(BUFFER_SIZE, size - received)
                     chunk = proto.recv_exact(want)
@@ -148,12 +149,12 @@ class TransferHandler:
             proto.send_message(CODE_BAD_REQ, STATUS_ERROR, "Missing filename")
             return
         filename = parts[1]
-        
+
         target_path = self.files.get_file_path(user, filename)
         if target_path is None:
             proto.send_message(CODE_FORBIDDEN, STATUS_ERROR, "Path traversal rejected")
             return
-            
+
         size = self.files.get_file_size(user, filename)
         if size is None:
             proto.send_message(CODE_NOT_FOUND, STATUS_ERROR, "File not found")
@@ -167,7 +168,7 @@ class TransferHandler:
             sent = 0
             with open(target_path, "rb") as fh:
                 while sent < size:
-                    if getattr(engine, '_shutdown_event').is_set():
+                    if engine._shutdown_event.is_set():
                         raise ConnectionAbortedError("Server shutting down")
                     chunk = fh.read(BUFFER_SIZE)
                     if not chunk:

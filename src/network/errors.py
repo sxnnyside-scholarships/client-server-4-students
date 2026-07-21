@@ -4,8 +4,8 @@ Module: errors.py
 Purpose: Standardized networking error hierarchy and codes.
 
 Architectural Role:
-Acts as an abstraction layer between low-level OS networking code and the application GUI. 
-It translates raw Python socket exceptions into localized, meaningful Enum values that 
+Acts as an abstraction layer between low-level OS networking code and the application GUI.
+It translates raw Python socket exceptions into localized, meaningful Enum values that
 the frontend can safely display to students without leaking stack traces.
 
 Responsibilities:
@@ -25,8 +25,8 @@ class NetworkError(Enum):
     Standardized error categories for client-server communication.
 
     Why it exists:
-    Because `ConnectionResetError` and `ConnectionAbortedError` mean the same thing 
-    to an end user: the connection was lost. This Enum simplifies error handling 
+    Because `ConnectionResetError` and `ConnectionAbortedError` mean the same thing
+    to an end user: the connection was lost. This Enum simplifies error handling
     for the GUI components.
 
     Responsibilities:
@@ -35,24 +35,25 @@ class NetworkError(Enum):
     Non-Responsibilities (Anti-Goals):
     - It does NOT contain language-specific translations (handled by LocaleManager).
     """
+
     SERVER_UNAVAILABLE = "ServerUnavailable"
     """The server is offline or unreachable."""
-    
+
     CONNECTION_REFUSED = "ConnectionRefused"
     """The server actively refused the connection (port closed)."""
-    
+
     AUTH_FAILED = "AuthFailed"
     """The provided credentials were rejected."""
-    
+
     CONNECTION_LOST = "ConnectionLost"
     """The active connection was abruptly terminated."""
-    
+
     TIMEOUT = "Timeout"
     """A network operation exceeded the maximum allowed time."""
-    
+
     PROTOCOL_ERROR = "ProtocolError"
     """The remote peer violated the communication protocol."""
-    
+
     INTERNAL_ERROR = "InternalError"
     """An unexpected local error occurred."""
 
@@ -75,7 +76,7 @@ def map_socket_error(exc: Exception) -> NetworkError:
     """
     if isinstance(exc, ConnectionRefusedError):
         return NetworkError.CONNECTION_REFUSED
-    elif type(exc).__name__ == 'timeout' or isinstance(exc, TimeoutError):
+    elif type(exc).__name__ == "timeout" or isinstance(exc, TimeoutError):
         return NetworkError.TIMEOUT
     elif isinstance(exc, ConnectionAbortedError):
         return NetworkError.CONNECTION_LOST

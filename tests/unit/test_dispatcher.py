@@ -44,9 +44,7 @@ def test_dispatch_unknown_command_sends_bad_request():
     engine = _StubEngine()
     sec_ctx = SecurityContext("127.0.0.1")
 
-    should_disconnect, username = dispatcher.dispatch(
-        "BOGUS", ["BOGUS"], proto, None, sec_ctx, engine
-    )
+    should_disconnect, username = dispatcher.dispatch("BOGUS", ["BOGUS"], proto, None, sec_ctx, engine)
 
     assert should_disconnect is False
     assert username is None
@@ -67,9 +65,7 @@ def test_dispatch_unknown_command_drops_after_threshold():
 
     should_disconnect = False
     for _ in range(sec_ctx.max_invalid_commands):
-        should_disconnect, _ = dispatcher.dispatch(
-            "BOGUS", ["BOGUS"], proto, None, sec_ctx, engine
-        )
+        should_disconnect, _ = dispatcher.dispatch("BOGUS", ["BOGUS"], proto, None, sec_ctx, engine)
 
     assert should_disconnect is True
 
@@ -87,9 +83,7 @@ def test_dispatch_requires_auth_for_protected_commands():
     engine = _StubEngine()
     sec_ctx = SecurityContext("127.0.0.1")
 
-    should_disconnect, username = dispatcher.dispatch(
-        "LIST", ["LIST"], proto, None, sec_ctx, engine
-    )
+    should_disconnect, username = dispatcher.dispatch("LIST", ["LIST"], proto, None, sec_ctx, engine)
 
     assert should_disconnect is False
     assert username is None

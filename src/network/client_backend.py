@@ -4,8 +4,8 @@ Module: client_backend.py
 Purpose: Networking engine for the client side.
 
 Architectural Role:
-Acts as a Facade connecting the core networking engines (`engine.py`, `operations.py`, 
-`transfers.py`) to the PyQt6 event loop. It translates pure Python callbacks into 
+Acts as a Facade connecting the core networking engines (`engine.py`, `operations.py`,
+`transfers.py`) to the PyQt6 event loop. It translates pure Python callbacks into
 thread-safe Qt signals that the UI can observe.
 
 Responsibilities:
@@ -30,8 +30,8 @@ class ClientBackend(QObject):
     Threaded TCP client with Qt signal integration.
 
     Why it exists:
-    Qt GUI widgets cannot be updated from background network threads without crashing. 
-    This class bridges the gap by converting network thread events into Qt Signals, 
+    Qt GUI widgets cannot be updated from background network threads without crashing.
+    This class bridges the gap by converting network thread events into Qt Signals,
     which safely cross the thread boundary into the main UI thread.
 
     Responsibilities:
@@ -61,19 +61,23 @@ class ClientBackend(QObject):
     capabilities_discovered = pyqtSignal(list)
     action_completed = pyqtSignal(str)
     rtt_measured = pyqtSignal(float)
-    
+
     # Educational Signals
     packet_tx = pyqtSignal(str)
     packet_rx = pyqtSignal(str)
 
-    def __init__(self):
+    def __init__(self, config=None):
         super().__init__()
-        
+
         # Build core engines
         self.engine = ClientConnectionEngine()
+
+        if config is not None:
+            self.engine.enable_tls = config.get_nested("client", "enable_tls", default=False)
+
         self.operations = ClientOperations(self.engine)
         self.transfers = ClientTransferEngine(self.engine)
-        
+
         # Wire Engine -> PyQt Signals
         self.engine.on_connected = self.connected.emit
         self.engine.on_disconnected = self.disconnected.emit
@@ -85,13 +89,13 @@ class ClientBackend(QObject):
         self.engine.on_capabilities_discovered = self.capabilities_discovered.emit
         self.engine.on_packet_tx = self.packet_tx.emit
         self.engine.on_packet_rx = self.packet_rx.emit
-        
+
         # Wire Operations -> PyQt Signals
         self.operations.on_file_list_received = self.file_list_received.emit
         self.operations.on_directory_created = self.directory_created.emit
         self.operations.on_action_completed = self.action_completed.emit
         self.operations.on_rtt_measured = self.rtt_measured.emit
-        
+
         # Wire Transfers -> PyQt Signals
         self.transfers.on_transfer_state_changed = self.transfer_state_changed.emit
         self.transfers.on_error_occurred = self.error_occurred.emit
@@ -237,8 +241,9 @@ class ClientBackend(QObject):
             Emits `error_occurred` on failure.
         """
         from src.core.protocol import CMD_DELETE
+
         self.operations.do_action(CMD_DELETE, filename)
-        
+
     def rename_file(self, old_name: str, new_name: str):
         """
         Requests the server to rename a file or directory.
@@ -257,8 +262,9 @@ class ClientBackend(QObject):
             Emits `error_occurred` on failure.
         """
         from src.core.protocol import CMD_RENAME
+
         self.operations.do_action(CMD_RENAME, old_name, new_name)
-        
+
     def move_file(self, filename: str, dest_dir: str):
         """
         Requests the server to move a file into a different directory.
@@ -277,6 +283,7 @@ class ClientBackend(QObject):
             Emits `error_occurred` on failure.
         """
         from src.core.protocol import CMD_MOVE
+
         self.operations.do_action(CMD_MOVE, filename, dest_dir)
 
     def measure_rtt(self):

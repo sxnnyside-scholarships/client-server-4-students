@@ -4,8 +4,8 @@ Package: src.core
 Purpose: Provides foundational utilities, configuration management, and protocol definitions shared across the entire application.
 
 Architectural Role:
-Acts as the central dependency for all other packages. It contains no business logic 
-or UI components, ensuring that high-level modules can depend on it without risking 
+Acts as the central dependency for all other packages. It contains no business logic
+or UI components, ensuring that high-level modules can depend on it without risking
 circular dependencies.
 
 Responsibilities:

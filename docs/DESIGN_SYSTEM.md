@@ -263,7 +263,12 @@ none of them is a native Qt widget wearing a stylesheet.
 - **Rule:** Never used more than once on screen at a time — an empty state is a quiet
   moment, not a decorative pattern repeated across every panel.
 
-### 6.6 Menu Bar
+### 6.6 MintDialog
+- **Purpose:** A MintPy-compliant modal dialog replacing native `QMessageBox` and `QInputDialog`.
+- **Visual:** A frameless QDialog with an `lg`-radius surface, an empty border, a bold title, body text/input, and a right-aligned button row.
+- **Rule:** Used for all simple text-prompt (`get_text`) and confirmation (`confirm`) dialogs. Must use localized keys for buttons. Danger confirmations use the danger button variant.
+
+### 6.7 Menu Bar
 - **Purpose:** Standard File / View / Help menu backing the rail's actions with
   keyboard-accessible, conventional desktop-app affordances.
 - **Rule:** Every menu action already exists as a rail control — the menu is a second

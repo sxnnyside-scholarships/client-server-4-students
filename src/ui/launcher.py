@@ -4,8 +4,8 @@ Module: launcher.py
 Purpose: Provides the initial entry point window for the CS4S application.
 
 Architectural Role:
-Acts as the central Dependency Injection hub and Application Bootstrapper. 
-It instantiates the shared singletons (Locale, Theme, Runtime) and injects 
+Acts as the central Dependency Injection hub and Application Bootstrapper.
+It instantiates the shared singletons (Locale, Theme, Runtime) and injects
 them into either the Client or Server window based on user selection.
 
 Responsibilities:
@@ -42,8 +42,8 @@ class LauncherWindow(QWidget):
     Start screen and Dependency Injection container.
 
     Why it exists:
-    Because CS4S bundles both the client and server into a single executable, 
-    there needs to be an initial routing screen. The launcher serves this purpose 
+    Because CS4S bundles both the client and server into a single executable,
+    there needs to be an initial routing screen. The launcher serves this purpose
     while also acting as the top-level owner of global configurations.
 
     Responsibilities:
@@ -61,7 +61,7 @@ class LauncherWindow(QWidget):
         locale: LocaleManager,
         themes: ThemeManager,
         app: QApplication,
-        runtime = None,
+        runtime=None,
     ):
         super().__init__()
         self.config = config
@@ -72,7 +72,7 @@ class LauncherWindow(QWidget):
         self._theme_name = self.config.get("theme", "mint_light")
         self._child_window = None
 
-        self.setFixedSize(520, 430)
+        self.setMinimumSize(520, 430)
         self._build_ui()
         self._wire_signals()
         self.retranslate()
@@ -104,26 +104,12 @@ class LauncherWindow(QWidget):
         cards_row.setSpacing(12)
 
         self.client_btn = self._make_mode_card("connect", neutral)
-        self.server_btn = self._make_mode_card("play", neutral)
+        self.server_btn = self._make_mode_card("server", neutral)
         cards_row.addWidget(self.client_btn, 1)
         cards_row.addWidget(self.server_btn, 1)
         root.addLayout(cards_row)
 
-        self.client_desc_label = QLabel()
-        self.client_desc_label.setObjectName("cardDescriptionLabel")
-        self.client_desc_label.setWordWrap(True)
-        self.client_desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.server_desc_label = QLabel()
-        self.server_desc_label.setObjectName("cardDescriptionLabel")
-        self.server_desc_label.setWordWrap(True)
-        self.server_desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        desc_row = QHBoxLayout()
-        desc_row.setSpacing(12)
-        desc_row.addWidget(self.client_desc_label, 1)
-        desc_row.addWidget(self.server_desc_label, 1)
-        root.addLayout(desc_row)
+        root.addStretch()
 
         root.addStretch()
 
@@ -134,7 +120,6 @@ class LauncherWindow(QWidget):
         self.lang_label = QLabel()
         self.lang_label.setObjectName("settingsLabel")
         self.lang_combo = MintDropdown(self._theme_name)
-        # Assuming items will be added later when populated
 
         lang_col = QVBoxLayout()
         lang_col.setSpacing(2)
@@ -203,44 +188,49 @@ class LauncherWindow(QWidget):
 
     def retranslate(self):
         t = self.locale.get
-        self.setWindowTitle(t("app_title"))
-        self.title_label.setText(t("app_title"))
-        self.subtitle_label.setText(t("welcome"))
-        self.client_btn.setText(t("start_client"))
-        self.client_btn.setToolTip(t("tooltip_connect"))
-        self.client_desc_label.setText(t("start_client_desc"))
-        self.server_btn.setText(t("start_server"))
-        self.server_btn.setToolTip(t("tooltip_start_server"))
-        self.server_desc_label.setText(t("start_server_desc"))
-        self.lang_label.setText(t("language"))
-        self.theme_label.setText(t("theme"))
-        self.version_label.setText(t("version_label"))
+        self.setWindowTitle(t("launcher.app_title"))
+        self.title_label.setText(t("launcher.app_title"))
+        self.subtitle_label.setText(t("launcher.welcome"))
+        self.client_btn.setText(t("launcher.start_client"))
+        self.server_btn.setText(t("launcher.start_server"))
+        self.client_btn.set_description(t("launcher.start_client_desc"))
+        self.server_btn.set_description(t("launcher.start_server_desc"))
+        self.client_btn.setToolTip(t("tooltip.connect"))
+        self.server_btn.setToolTip(t("tooltip.start_server"))
 
-        self.footer.update_text(t("footer_prefix"))
+        self.lang_label.setText(t("launcher.language"))
+        self.lang_combo.setItemText(1, t("launcher.lang_es"))
+
+        self.adjustSize()
+        self.theme_label.setText(t("launcher.theme"))
+        self.version_label.setText(t("launcher.version_label"))
+
+        self.footer.update_text(t("common.footer_prefix"))
 
         # Rebuild theme combo with translated names
         current = self.config.get("theme", "mint_light")
         self.theme_combo.blockSignals(True)
         self.theme_combo.clear()
-        self.theme_combo.addItem(t("theme_light"), "mint_light")
-        self.theme_combo.addItem(t("theme_dark"), "mint_dark")
+        self.theme_combo.addItem(t("launcher.theme_light"), "mint_light")
+        self.theme_combo.addItem(t("launcher.theme_dark"), "mint_dark")
         idx = self.theme_combo.findData(current)
         if idx >= 0:
             self.theme_combo.setCurrentIndex(idx)
         self.theme_combo.blockSignals(False)
-        
+
         # Rebuild lang combo
         self.lang_combo.blockSignals(True)
         self.lang_combo.clear()
-        
+
         from src.localization.locale_manager import LocaleManager
+
         current_lang = self.locale.current_locale
         idx = 0
         for i, (code, name) in enumerate(LocaleManager.SUPPORTED_LOCALES.items()):
             self.lang_combo.addItem(name, code)
             if code == current_lang:
                 idx = i
-        
+
         self.lang_combo.setCurrentIndex(idx)
         self.lang_combo.blockSignals(False)
 
@@ -261,7 +251,7 @@ class LauncherWindow(QWidget):
     def _open_client(self):
         from src.ui.client_window import ClientWindow
         from src.network.client_backend import ClientBackend
-        
+
         backend = ClientBackend()
 
         self.hide()
@@ -283,7 +273,14 @@ class LauncherWindow(QWidget):
 
         self.hide()
         self._child_window = ServerWindow(
-            self.config, self.locale, self.themes, self.app, auth=auth, files=files, backend=backend, runtime=self.runtime
+            self.config,
+            self.locale,
+            self.themes,
+            self.app,
+            auth=auth,
+            files=files,
+            backend=backend,
+            runtime=self.runtime,
         )
         self._child_window.closed.connect(self._on_child_closed)
         self._child_window.showMaximized()

@@ -4,12 +4,12 @@ Module: server_backend.py
 Purpose: Networking engine for the server side.
 
 Architectural Role:
-Acts as a Facade connecting the core server networking engines (`engine.py`, `dispatcher.py`) 
-to the PyQt6 event loop. It translates pure Python callbacks into thread-safe Qt signals 
+Acts as a Facade connecting the core server networking engines (`engine.py`, `dispatcher.py`)
+to the PyQt6 event loop. It translates pure Python callbacks into thread-safe Qt signals
 that the UI can observe.
 
 Responsibilities:
-- Register all command handlers (`AuthCommandHandler`, `FileOpsHandler`, `TransferHandler`) 
+- Register all command handlers (`AuthCommandHandler`, `FileOpsHandler`, `TransferHandler`)
   with the `CommandDispatcher`.
 - Instantiate the `ServerNetworkEngine`.
 - Wire engine callback hooks to `pyqtSignal` emissions.
@@ -46,8 +46,8 @@ class ServerBackend(QObject):
     Threaded TCP server with Qt signal integration.
 
     Why it exists:
-    Qt GUI widgets cannot be updated from background network threads without crashing. 
-    This class bridges the gap by converting network thread events into Qt Signals, 
+    Qt GUI widgets cannot be updated from background network threads without crashing.
+    This class bridges the gap by converting network thread events into Qt Signals,
     which safely cross the thread boundary into the main UI thread.
 
     Responsibilities:
@@ -73,17 +73,24 @@ class ServerBackend(QObject):
         self.auth = auth
         self.files = files
         max_connections = 5
+        enable_tls = False
+        cert_file = "cert.pem"
+        key_file = "key.pem"
+
         if config is not None:
             max_connections = config.get_nested("server", "max_connections", default=5)
-        
+            enable_tls = config.get_nested("server", "enable_tls", default=False)
+            cert_file = config.get_nested("server", "cert_file", default="cert.pem")
+            key_file = config.get_nested("server", "key_file", default="key.pem")
+
         # Build the command dispatcher
         self.dispatcher = CommandDispatcher()
-        
+
         # Handlers
         auth_handler = AuthCommandHandler(auth)
         file_handler = FileOpsHandler(files)
         transfer_handler = TransferHandler(files)
-        
+
         # Register routes
         self.dispatcher.register(CMD_AUTH, auth_handler.handle, requires_auth=False)
         self.dispatcher.register(CMD_LIST, file_handler.cmd_list)
@@ -96,7 +103,10 @@ class ServerBackend(QObject):
 
         # Build the networking engine
         self.engine = ServerNetworkEngine(max_connections=max_connections, dispatcher=self.dispatcher)
-        
+        self.engine.enable_tls = enable_tls
+        self.engine.cert_file = cert_file
+        self.engine.key_file = key_file
+
         # Wire engine callbacks to Qt Signals
         self.engine.on_log_message = self.log_message.emit
         self.engine.on_client_connected = self.client_connected.emit
@@ -145,28 +155,87 @@ class ServerBackend(QObject):
 
     # ── Teacher Mode Chaos Settings ──
     @property
-    def max_connections(self):
+    def max_connections(self) -> int:
+        """
+        Retrieves the hard limit for concurrent client sockets.
+
+        Purpose:
+            Prevents resource exhaustion.
+
+        Outputs:
+            int: The configured maximum concurrent connection count.
+        """
         return self.engine.max_connections
 
     @max_connections.setter
-    def max_connections(self, value):
-        self.engine.max_connections = value
+    def max_connections(self, val: int):
+        """
+        Dynamically adjusts the connection limit.
+
+        Purpose:
+            Allows teachers to restrict the laboratory capacity on the fly.
+
+        Inputs:
+            val (int): The new limit.
+
+        Side effects:
+            Future connection attempts beyond this limit will be immediately rejected with 503.
+        """
+        self.engine.max_connections = val
 
     @property
-    def simulate_latency(self):
+    def simulate_latency(self) -> float:
+        """
+        Retrieves the active artificial delay applied to incoming packets.
+
+        Outputs:
+            float: Delay in seconds.
+        """
         return self.engine.simulate_latency
 
     @simulate_latency.setter
-    def simulate_latency(self, value):
-        self.engine.simulate_latency = value
+    def simulate_latency(self, val: float):
+        """
+        Configures an artificial network delay for educational observation.
+
+        Purpose:
+            Allows students to observe delayed packet processing, timeouts, and asynchronous
+            UI behavior in real-time.
+
+        Inputs:
+            val (float): Delay in seconds.
+
+        Side effects:
+            Applies a blocking `time.sleep(val)` in the server's per-client handler threads.
+        """
+        self.engine.simulate_latency = val
 
     @property
-    def simulate_packet_loss(self):
+    def simulate_packet_loss(self) -> float:
+        """
+        Retrieves the active artificial packet drop rate.
+
+        Outputs:
+            float: Drop probability between 0.0 and 1.0.
+        """
         return self.engine.simulate_packet_loss
 
     @simulate_packet_loss.setter
-    def simulate_packet_loss(self, value):
-        self.engine.simulate_packet_loss = value
+    def simulate_packet_loss(self, val: float):
+        """
+        Configures an artificial packet drop rate for educational observation.
+
+        Purpose:
+            Allows students to observe how network unreliability affects the application layer,
+            such as stuck transfers or missing directory listings.
+
+        Inputs:
+            val (float): Probability to drop a packet (e.g., 0.1 for 10%).
+
+        Side effects:
+            Randomly aborts the processing of incoming commands in the handler threads.
+        """
+        self.engine.simulate_packet_loss = val
 
     def start(self, host: str, port: int):
         """

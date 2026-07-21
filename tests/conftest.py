@@ -4,8 +4,8 @@ Module: conftest.py
 Purpose: Reusable test utilities, temporary resources, and mock environments.
 
 Architectural Role:
-Provides Pytest fixtures injected into all test suites. It handles the teardown 
-and isolation of disk-bound classes (like `FileManager` and `AuthManager`) to 
+Provides Pytest fixtures injected into all test suites. It handles the teardown
+and isolation of disk-bound classes (like `FileManager` and `AuthManager`) to
 ensure tests are stateless.
 
 Responsibilities:
@@ -16,8 +16,6 @@ Expected Collaborators:
 - `pytest` (consumes these fixtures automatically).
 """
 
-import json
-import socket
 import time
 from pathlib import Path
 
@@ -94,19 +92,19 @@ def server_backend(tmp_sandbox, mock_users_file):
     auth = AuthManager(mock_users_file)
     # Seed a known test user
     auth.add_user("testuser", "testpass")
-    
+
     files = FileManager(tmp_sandbox)
     server = ServerBackend(auth, files)
-    
+
     # Bind to port 0 to let OS pick a free port, preventing collisions
     server.start("127.0.0.1", 0)
-    
+
     # Wait for socket to be ready
     for _ in range(50):
         if server.is_running and server.engine._socket:
             break
         time.sleep(0.01)
-        
+
     yield server
     server.stop()
 

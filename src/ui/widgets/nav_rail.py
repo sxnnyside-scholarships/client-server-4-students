@@ -51,6 +51,7 @@ from PyQt6.QtWidgets import (
 
 from src.ui.icons.icon_provider import get_icon
 from src.ui.themes.tokens import icon_color, mint_gradient, surface_colors
+from src.ui.widgets.atoms import MintButton
 from src.ui.widgets.common import BrandingFooter, StatusBadge
 
 RAIL_WIDTH = 252
@@ -72,7 +73,7 @@ class _NavItemButton(QPushButton):
         self._base_style = (
             "QPushButton { text-align: left; padding-left: 12px; "
             "border: none; background: transparent; font-weight: 600; "
-            "font-size: 13px; }"
+            "font-size: 13px; qproperty-iconSize: 16px; }"
         )
         self.setStyleSheet(self._base_style)
 
@@ -95,10 +96,11 @@ class _NavItemButton(QPushButton):
     def _on_toggled(self, checked: bool):
         role = "on-accent" if checked else "default"
         self.setIcon(get_icon(self._icon_name, icon_color(self._theme_name, role)))
+        accent_color = icon_color(self._theme_name, "on-accent")
         self.setStyleSheet(
             self._base_style.replace(
                 "font-size: 13px;",
-                f"font-size: 13px; color: {'#FFFFFF' if checked else ''};",
+                f"font-size: 13px; color: {accent_color if checked else ''};",
             )
         )
         self._anim.stop()
@@ -204,11 +206,13 @@ class NavRail(QWidget):
         self.nav_layout.setSpacing(2)
         outer.addLayout(self.nav_layout)
         self._nav_group = QButtonGroup(self)
+        self._mode_buttons: dict[str, _NavItemButton] = {}
         self._nav_group.setExclusive(True)
 
         outer.addStretch(1)
 
-        self.back_btn = QPushButton()
+        self.back_btn = MintButton("", theme_name)
+        self.back_btn.setObjectName("secondaryButton")
         self.back_btn.setIcon(get_icon("arrow-left", icon_color(theme_name)))
         self.back_btn.clicked.connect(self.back_requested.emit)
         outer.addWidget(self.back_btn)
@@ -240,13 +244,34 @@ class NavRail(QWidget):
             None.
         """
         btn = _NavItemButton(self._theme_name, icon_name)
-        btn.setText(f"  {label}")
+        btn.setText(label)
         if checked:
             btn.setChecked(True)
         btn.toggled.connect(lambda on, m=mode_id: on and self.mode_changed.emit(m))
         self._nav_group.addButton(btn)
         self.nav_layout.addWidget(btn)
+        self._mode_buttons[mode_id] = btn
         return btn
+
+    def set_mode(self, mode_id: str):
+        """
+        Programmatically activates a registered mode, as if the user had
+        clicked its rail entry.
+
+        Args:
+            mode_id: The identifier previously passed to `add_mode`.
+
+        Side Effects:
+            Checks the matching nav button, which emits `mode_changed` through
+            the normal toggle path — callers (e.g. menu-bar actions) never
+            need to duplicate the mode-switch wiring.
+
+        Failure Behavior:
+            Silently ignores unknown mode ids.
+        """
+        btn = self._mode_buttons.get(mode_id)
+        if btn is not None:
+            btn.setChecked(True)
 
     def paintEvent(self, event):
         painter = QPainter(self)

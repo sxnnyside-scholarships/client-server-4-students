@@ -4,8 +4,8 @@ Module: security.py
 Purpose: Centralized security rules, event tracking, and session hardening.
 
 Architectural Role:
-Acts as the central authority for connection validation and threat detection. It isolates 
-malicious behavior tracking (e.g., brute-force attempts) from the normal business logic 
+Acts as the central authority for connection validation and threat detection. It isolates
+malicious behavior tracking (e.g., brute-force attempts) from the normal business logic
 of the ProtocolHandler.
 
 Responsibilities:
@@ -26,11 +26,16 @@ from enum import Enum
 
 
 class SecurityEventCategory(Enum):
-    AUTH_FAILURE = "AuthFailure"
-    MALFORMED_INPUT = "MalformedInput"
-    RATE_LIMIT_EXCEEDED = "RateLimitExceeded"
-    SESSION_VIOLATION = "SessionViolation"
-    CONNECTION_REJECTED = "ConnectionRejected"
+    """
+    Categorizes the type of security infraction detected by the server.
+    """
+
+    AUTH_FAILURE = "auth_failure"
+    INVALID_COMMAND = "invalid_command"
+    PATH_TRAVERSAL = "path_traversal"
+    DOS_ATTEMPT = "dos_attempt"
+    MALFORMED_INPUT = "malformed_input"
+    SESSION_VIOLATION = "session_violation"
 
 
 class SecuritySeverity(Enum):
@@ -45,7 +50,7 @@ class SecurityEvent:
     Structured payload for logging and transmitting security alerts.
 
     Why it exists:
-    Instead of passing loose strings around, this dataclass ensures all security 
+    Instead of passing loose strings around, this dataclass ensures all security
     events carry the necessary forensic metadata (severity, IP, timestamp).
 
     Responsibilities:
@@ -55,11 +60,12 @@ class SecurityEvent:
     Non-Responsibilities (Anti-Goals):
     - It does NOT decide what to do with the event (e.g., it doesn't write to disk).
     """
+
     category: str
     severity: str
     message: str
     client_address: str
-    
+
     def to_dict(self) -> dict:
         """
         Converts the dataclass instance to a primitive dictionary.
@@ -81,7 +87,7 @@ class SecurityEvent:
             "severity": self.severity,
             "message": self.message,
             "client_address": self.client_address,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
 
 
@@ -105,10 +111,10 @@ def is_valid_username(username: str) -> bool:
 
     Failure Behavior:
         Fails closed (returns False) on empty strings or malicious characters.
-    
+
     Educational Note:
-    We use an explicit allow-list regex rather than trying to strip out 
-    dangerous characters. This deterministic approach completely eliminates 
+    We use an explicit allow-list regex rather than trying to strip out
+    dangerous characters. This deterministic approach completely eliminates
     path-traversal threats (e.g. `../../root`).
     """
     if not username:
@@ -187,8 +193,8 @@ class SecurityContext:
     Tracks security-related state for a single client connection.
 
     Why it exists:
-    Because TCP sockets are persistent, a malicious client might try to brute-force 
-    a password or send garbage data to crash the server. This state machine tracks 
+    Because TCP sockets are persistent, a malicious client might try to brute-force
+    a password or send garbage data to crash the server. This state machine tracks
     abuse thresholds per-connection to know when to drop them.
 
     Responsibilities:
@@ -198,6 +204,7 @@ class SecurityContext:
     Non-Responsibilities (Anti-Goals):
     - It does NOT actually drop the socket (delegated to the ServerNetworkEngine).
     """
+
     def __init__(self, client_address: str):
         self.client_address = client_address
         self.failed_auth_attempts = 0

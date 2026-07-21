@@ -4,7 +4,7 @@ Package: src
 Purpose: Root source package for the Client-Server 4 Students (CS4S) educational application.
 
 Architectural Role:
-Serves as the top-level namespace container for all application logic, isolating the 
+Serves as the top-level namespace container for all application logic, isolating the
 execution code from tests, build artifacts, and documentation.
 
 Responsibilities:

@@ -21,7 +21,7 @@ Expected Collaborators:
 
 from datetime import datetime
 
-from PyQt6.QtCore import QSize, Qt, pyqtSignal
+from PyQt6.QtCore import QSize, pyqtSignal
 from PyQt6.QtGui import QColor, QTextCursor, QTextCharFormat
 from PyQt6.QtWidgets import (
     QHBoxLayout,
@@ -31,8 +31,9 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from src.ui.widgets.atoms import MintTextInput, MintButton
+from src.ui.widgets.atoms import MintTextInput, MintButton, MintIconButton, MintCheckbox, EmptyStateWidget
 from src.ui.icons.icon_provider import get_icon
+from src.ui.themes.tokens import console_colors
 
 
 class ProtocolInspectorWidget(QWidget):
@@ -60,17 +61,18 @@ class ProtocolInspectorWidget(QWidget):
     # copy itself lives in en.json/es.json under these keys (proto_explain_*)
     # so it participates in translation like every other visible string.
     EXPLANATION_KEYS = {
-        "HELLO": "proto_explain_hello",
-        "AUTH": "proto_explain_auth",
-        "LIST": "proto_explain_list",
-        "UPLOAD": "proto_explain_upload",
-        "DOWNLOAD": "proto_explain_download",
-        "MKDIR": "proto_explain_mkdir",
-        "DELETE": "proto_explain_delete",
-        "RENAME": "proto_explain_rename",
-        "MOVE": "proto_explain_move",
-        "QUIT": "proto_explain_quit",
-        "PING": "proto_explain_ping",
+        "HELLO": "inspector.proto_explain_hello",
+        "AUTH": "inspector.proto_explain_auth",
+        "LIST": "inspector.proto_explain_list",
+        "UPLOAD": "inspector.proto_explain_upload",
+        "DOWNLOAD": "inspector.proto_explain_download",
+        "MKDIR": "inspector.proto_explain_mkdir",
+        "DELETE": "inspector.proto_explain_delete",
+        "RENAME": "inspector.proto_explain_rename",
+        "MOVE": "inspector.proto_explain_move",
+        "QUIT": "inspector.proto_explain_quit",
+        "PING": "inspector.proto_explain_ping",
+        "[ENCRYPTED": "inspector.proto_explain_tls",
     }
 
     def __init__(self, locale=None, icon_color: str = "#636E72", theme_name: str = "light"):
@@ -78,6 +80,9 @@ class ProtocolInspectorWidget(QWidget):
         self.locale = locale
         self._icon_color = icon_color
         self._theme_name = theme_name
+        self._log_entries = []
+        self._is_paused = False
+        self._show_ping = False
         self._build_ui()
         self._wire_signals()
         self.retranslate()
@@ -97,6 +102,14 @@ class ProtocolInspectorWidget(QWidget):
         # SectionCard) already labels this panel, so this row only carries
         # the one piece of live data that belongs at a glance.
         header_row = QHBoxLayout()
+        self.pause_btn = MintIconButton("pause", self._theme_name)
+        self.clear_btn = MintIconButton("eraser", self._theme_name)
+        self.ping_check = MintCheckbox("", self._theme_name)
+        self.ping_check.setChecked(False)
+
+        header_row.addWidget(self.pause_btn)
+        header_row.addWidget(self.clear_btn)
+        header_row.addWidget(self.ping_check)
         header_row.addStretch()
 
         self.rtt_label = QLabel()
@@ -109,7 +122,13 @@ class ProtocolInspectorWidget(QWidget):
         self.console = QTextEdit()
         self.console.setReadOnly(True)
         self.console.setObjectName("logArea")
+        self.empty_state = EmptyStateWidget("", self._theme_name, "leaf")
+
+        self.console.setVisible(False)
+        self.empty_state.setVisible(True)
+
         layout.addWidget(self.console, stretch=1)
+        layout.addWidget(self.empty_state, stretch=1)
 
         # 3. Explanation Panel
         self.explanation_label = QLabel()
@@ -136,6 +155,11 @@ class ProtocolInspectorWidget(QWidget):
         self.send_btn.clicked.connect(self._on_send_raw)
         self.raw_input.returnPressed.connect(self._on_send_raw)
         self.console.selectionChanged.connect(self._on_selection_changed)
+        self.console.cursorPositionChanged.connect(self._on_selection_changed)
+
+        self.pause_btn.clicked.connect(self._on_pause)
+        self.clear_btn.clicked.connect(self._on_clear)
+        self.ping_check.toggled.connect(self._on_ping_toggled)
 
     def retranslate(self):
         """
@@ -154,13 +178,17 @@ class ProtocolInspectorWidget(QWidget):
         Failure Behavior:
             None.
         """
-        self.rtt_label.setText(self._t("rtt_placeholder"))
-        self.explanation_label.setText(self._t("proto_explain_hint_default"))
-        self.raw_input.setPlaceholderText(self._t("raw_command_placeholder"))
-        self.send_btn.setText(self._t("send_raw_btn"))
-        self.send_btn.setToolTip(self._t("tooltip_send_raw"))
-        self.raw_input.setToolTip(self._t("tooltip_raw_command_input"))
-        self.console.setToolTip(self._t("tooltip_protocol_console"))
+        self.rtt_label.setText(self._t("inspector.rtt_placeholder"))
+        self.explanation_label.setText(self._t("inspector.proto_explain_hint_default"))
+        self.raw_input.setPlaceholderText(self._t("inspector.raw_command_placeholder"))
+        self.send_btn.setText(self._t("inspector.send_raw_btn"))
+        self.send_btn.setToolTip(self._t("tooltip.send_raw"))
+        self.raw_input.setToolTip(self._t("tooltip.raw_command_input"))
+        self.console.setToolTip(self._t("tooltip.protocol_console"))
+        self.pause_btn.setToolTip(self._t("tooltip.inspector_pause"))
+        self.clear_btn.setToolTip(self._t("tooltip.inspector_clear"))
+        self.ping_check.setText(self._t("tooltip.inspector_show_ping"))
+        self.empty_state.set_message(self._t("inspector.empty_console"))
 
     def set_rtt(self, rtt_ms: float):
         """
@@ -178,80 +206,81 @@ class ProtocolInspectorWidget(QWidget):
         Failure Behavior:
             None.
         """
-        self.rtt_label.setText(self._t("rtt_value", rtt=f"{rtt_ms:.1f}"))
+        self.rtt_label.setText(self._t("inspector.rtt_value", rtt=f"{rtt_ms:.1f}"))
 
     def log_tx(self, packet: str):
-        """
-        Records an outbound transmission from the client to the server.
-
-        Args:
-            packet: The raw string payload (without trailing newlines).
-
-        Returns:
-            None.
-
-        Side Effects:
-            Mutates the `QTextEdit` buffer. Auto-scrolls to the bottom.
-            Text is styled in Blue.
-
-        Failure Behavior:
-            None.
-        """
-        self._log(f"-> {packet}", QColor("#0000AA"))
+        self._add_log_entry("tx", packet)
 
     def log_rx(self, packet: str):
-        """
-        Records an inbound transmission from the server to the client.
+        self._add_log_entry("rx", packet)
 
-        Args:
-            packet: The raw string payload (without trailing newlines).
-
-        Returns:
-            None.
-
-        Side Effects:
-            Mutates the `QTextEdit` buffer. Auto-scrolls to the bottom.
-            Text is styled in Green.
-
-        Failure Behavior:
-            None.
-        """
-        self._log(f"<- {packet}", QColor("#008800"))
-
-    def _log(self, text: str, color: QColor):
-        """
-        Internal helper to append formatted text to the console.
-
-        Args:
-            text: The string to append.
-            color: The `QColor` format to apply to the timestamp.
-
-        Returns:
-            None.
-
-        Side Effects:
-            Mutates the `QTextEdit` buffer.
-            Forces the widget to scroll to the absolute bottom.
-
-        Failure Behavior:
-            None.
-        """
+    def _add_log_entry(self, direction: str, packet: str):
         now = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        self._log_entries.append((direction, packet, now))
+        if len(self._log_entries) > 2000:
+            self._log_entries.pop(0)
 
-        # Move cursor to end
+        if self._is_paused:
+            return
+
+        if "PING" in packet or "PONG" in packet:
+            if not self._show_ping:
+                return
+
+        self._append_to_console(direction, packet, now)
+        self._update_empty_state()
+
+    def _append_to_console(self, direction: str, packet: str, timestamp: str):
+        colors = console_colors(self._theme_name)
+        if direction == "tx":
+            color_str = colors["encrypted"] if "[Encrypted" in packet else colors["tx"]
+            prefix = "->"
+        else:
+            color_str = colors["encrypted"] if "[Encrypted" in packet else colors["rx"]
+            prefix = "<-"
+
+        color = QColor(color_str)
+
+        scrollbar = self.console.verticalScrollBar()
+        at_bottom = scrollbar.value() >= scrollbar.maximum() - 4
+
         cursor = self.console.textCursor()
         cursor.movePosition(QTextCursor.MoveOperation.End)
 
-        # Apply color format
         fmt = QTextCharFormat()
         fmt.setForeground(color)
-        cursor.insertText(f"[{now}] ", fmt)
+        cursor.insertText(f"[{timestamp}] ", fmt)
+        cursor.insertText(f"{prefix} {packet}\n")
 
-        # The actual packet
-        cursor.insertText(f"{text}\n")
+        if at_bottom:
+            scrollbar.setValue(scrollbar.maximum())
 
-        # Auto-scroll
-        self.console.ensureCursorVisible()
+    def _render_logs(self):
+        self.console.clear()
+        for direction, packet, timestamp in self._log_entries:
+            if "PING" in packet or "PONG" in packet:
+                if not self._show_ping:
+                    continue
+            self._append_to_console(direction, packet, timestamp)
+        self._update_empty_state()
+
+    def _update_empty_state(self):
+        is_empty = self.console.document().isEmpty() or self.console.document().toPlainText().strip() == ""
+        self.console.setVisible(not is_empty)
+        self.empty_state.setVisible(is_empty)
+
+    def _on_pause(self):
+        self._is_paused = not self._is_paused
+        if not self._is_paused:
+            self._render_logs()
+
+    def _on_clear(self):
+        self._log_entries.clear()
+        self._render_logs()
+
+    def _on_ping_toggled(self, checked: bool):
+        self._show_ping = checked
+        self._render_logs()
 
     def _on_send_raw(self):
         cmd = self.raw_input.text().strip()
@@ -260,31 +289,23 @@ class ProtocolInspectorWidget(QWidget):
             self.raw_input.clear()
 
     def _on_selection_changed(self):
-        """
-        Triggered by Qt when the user highlights text in the console.
-        Updates the explanation label if the selected text matches a known command.
-
-        Args:
-            None.
-
-        Returns:
-            None.
-
-        Side Effects:
-            Mutates the `explanation_label` text.
-
-        Failure Behavior:
-            If the highlighted text is not a valid command, displays a fallback message.
-        """
         cursor = self.console.textCursor()
+
         if cursor.hasSelection():
             text = cursor.selectedText().strip()
-            # Try to match the first word with a known command
+        else:
+            text = cursor.block().text().strip()
+            if text.startswith("["):
+                idx = text.find("]")
+                if idx != -1:
+                    text = text[idx + 1 :].strip()
+
+        if text:
             cmd = text.split("|")[0].upper().replace("->", "").replace("<-", "").strip()
             key = self.EXPLANATION_KEYS.get(cmd)
             if key:
                 self.explanation_label.setText(f"{cmd}: {self._t(key)}")
             else:
-                self.explanation_label.setText(self._t("proto_explain_unknown"))
+                self.explanation_label.setText(self._t("inspector.proto_explain_unknown"))
         else:
-            self.explanation_label.setText(self._t("proto_explain_hint_default"))
+            self.explanation_label.setText(self._t("inspector.proto_explain_hint_default"))

@@ -4,8 +4,8 @@ Module: dispatcher.py
 Purpose: Routes parsed commands to their registered handlers and manages authentication barriers.
 
 Architectural Role:
-Acts as the central traffic controller for the server. It decouples the `ClientConnectionHandler` 
-(which just reads strings from a socket) from the `handlers` (which perform business logic like 
+Acts as the central traffic controller for the server. It decouples the `ClientConnectionHandler`
+(which just reads strings from a socket) from the `handlers` (which perform business logic like
 disk I/O or authentication).
 
 Responsibilities:
@@ -19,19 +19,12 @@ Expected Collaborators:
 """
 
 import logging
-from typing import Callable, Tuple, Any
+from typing import Callable, Tuple
 
 from src.core.protocol import (
     CMD_AUTH,
-    CMD_DELETE,
-    CMD_DOWNLOAD,
-    CMD_LIST,
-    CMD_MKDIR,
-    CMD_MOVE,
     CMD_PING,
     CMD_QUIT,
-    CMD_RENAME,
-    CMD_UPLOAD,
     CODE_BAD_REQ,
     CODE_FORBIDDEN,
     CODE_GOODBYE,
@@ -45,12 +38,13 @@ from src.network.security import BanRegistry, SecurityContext, SecurityEvent, Se
 
 logger = logging.getLogger("server.dispatcher")
 
+
 class CommandDispatcher:
     """
     Routes commands to their registered handlers and manages authentication barriers.
 
     Why it exists:
-    Hardcoding a massive `if/elif` block in the connection read loop becomes unmaintainable. 
+    Hardcoding a massive `if/elif` block in the connection read loop becomes unmaintainable.
     A dynamic registry allows handler logic to be split into separate files.
 
     Responsibilities:
@@ -91,13 +85,7 @@ class CommandDispatcher:
         self._handlers[cmd.upper()] = (handler, requires_auth)
 
     def dispatch(
-        self, 
-        cmd: str, 
-        parts: list, 
-        proto: ProtocolHandler, 
-        username: str | None, 
-        sec_ctx: SecurityContext, 
-        engine
+        self, cmd: str, parts: list, proto: ProtocolHandler, username: str | None, sec_ctx: SecurityContext, engine
     ) -> Tuple[bool, str | None]:
         """
         Validates and executes the appropriate handler for an incoming command.
@@ -138,7 +126,7 @@ class CommandDispatcher:
                 category=SecurityEventCategory.MALFORMED_INPUT.value,
                 severity=SecuritySeverity.WARNING.value,
                 message=f"Invalid command: {cmd}",
-                client_address=sec_ctx.client_address
+                client_address=sec_ctx.client_address,
             )
             engine.on_security_alert(evt.to_dict())
             if sec_ctx.record_invalid_command():
@@ -154,12 +142,12 @@ class CommandDispatcher:
             return False, username
 
         try:
-            # The handler signature varies. 
+            # The handler signature varies.
             # CMD_AUTH returns (username, drop)
             if cmd == CMD_AUTH:
                 new_username, drop = handler(proto, parts, sec_ctx, engine)
                 if drop:
-                    self.ban_registry.ban(sec_ctx.client_address.split(':')[0])
+                    self.ban_registry.ban(sec_ctx.client_address.split(":")[0])
                     return True, username
                 if new_username:
                     return False, new_username
@@ -198,7 +186,7 @@ class CommandDispatcher:
                 category=SecurityEventCategory.SESSION_VIOLATION.value,
                 severity=SecuritySeverity.WARNING.value,
                 message="Attempted privileged operation without authentication",
-                client_address=sec_ctx.client_address
+                client_address=sec_ctx.client_address,
             )
             engine.on_security_alert(evt.to_dict())
             return False

@@ -4,8 +4,8 @@ Module: transfers.py
 Purpose: Manages long-running upload and download byte-loops.
 
 Architectural Role:
-Isolates the slow, blocking operations of reading/writing large files over the 
-network. By running these inside `engine.run_in_background` with chunked byte 
+Isolates the slow, blocking operations of reading/writing large files over the
+network. By running these inside `engine.run_in_background` with chunked byte
 streams, it ensures the GUI remains responsive and can update progress bars dynamically.
 
 Responsibilities:
@@ -34,13 +34,14 @@ from src.core.protocol import (
 from src.network.errors import NetworkError, map_socket_error
 from src.network.transfer_state import TransferState
 
+
 class ClientTransferEngine:
     """
     Manages background file transfers and cancellation logic.
 
     Why it exists:
-    Sending a 1GB file cannot be done in a single blocking call. This engine breaks 
-    files into `BUFFER_SIZE` chunks, allowing it to emit progress updates and check 
+    Sending a 1GB file cannot be done in a single blocking call. This engine breaks
+    files into `BUFFER_SIZE` chunks, allowing it to emit progress updates and check
     for cancellation flags between chunks.
 
     Responsibilities:
@@ -54,7 +55,7 @@ class ClientTransferEngine:
 
     def __init__(self, engine):
         self.engine = engine
-        
+
         # Callbacks
         self.on_transfer_state_changed: Callable[[str, str], None] = lambda x, y: None
         self.on_error_occurred: Callable[[str, str], None] = lambda x, y: None
@@ -123,7 +124,9 @@ class ClientTransferEngine:
                 self.engine.proto.send_message(CMD_UPLOAD, remote_name, size)
                 resp = self.engine.proto.recv_message()
                 if resp[0] != str(CODE_OK):
-                    self.engine.on_error_occurred(NetworkError.PROTOCOL_ERROR.value, resp[2] if len(resp) > 2 else "Rejected")
+                    self.engine.on_error_occurred(
+                        NetworkError.PROTOCOL_ERROR.value, resp[2] if len(resp) > 2 else "Rejected"
+                    )
                     self.on_transfer_state_changed(remote_name, TransferState.FAILED.value)
                     return
 
@@ -136,10 +139,10 @@ class ClientTransferEngine:
                     while sent < size:
                         if self.engine.shutdown_event.is_set():
                             raise ConnectionAbortedError("Client disconnected")
-                            
+
                         if cancel_event.is_set():
                             want = min(BUFFER_SIZE, size - sent)
-                            pad = b'\x00' * want
+                            pad = b"\x00" * want
                             self.engine.proto.send_bytes(pad)
                             sent += len(pad)
                         else:
@@ -154,13 +157,15 @@ class ClientTransferEngine:
                             pct = int(sent / size * 100) if size else 100
                             speed = (sent / (now - start_time)) if (now - start_time) > 0 else 0.0
                             self.on_transfer_progress(pct)
-                            self.on_transfer_progress_detailed({
-                                "filename": remote_name,
-                                "bytes_transferred": sent,
-                                "total_bytes": size,
-                                "percentage": pct,
-                                "speed_bps": speed
-                            })
+                            self.on_transfer_progress_detailed(
+                                {
+                                    "filename": remote_name,
+                                    "bytes_transferred": sent,
+                                    "total_bytes": size,
+                                    "percentage": pct,
+                                    "speed_bps": speed,
+                                }
+                            )
                             last_emit = now
 
                 resp = self.engine.proto.recv_message()
@@ -171,7 +176,9 @@ class ClientTransferEngine:
                     self.engine.on_status_message(f"Uploaded: {remote_name}")
                     self.on_transfer_state_changed(remote_name, TransferState.COMPLETED.value)
                 else:
-                    self.engine.on_error_occurred(NetworkError.PROTOCOL_ERROR.value, resp[2] if len(resp) > 2 else "Failed")
+                    self.engine.on_error_occurred(
+                        NetworkError.PROTOCOL_ERROR.value, resp[2] if len(resp) > 2 else "Failed"
+                    )
                     self.on_transfer_state_changed(remote_name, TransferState.FAILED.value)
             except (ConnectionError, OSError) as exc:
                 if self.engine.shutdown_event.is_set():
@@ -221,7 +228,9 @@ class ClientTransferEngine:
                 self.engine.proto.send_message(CMD_DOWNLOAD, remote_name)
                 resp = self.engine.proto.recv_message()
                 if resp[0] != str(CODE_OK):
-                    self.engine.on_error_occurred(NetworkError.PROTOCOL_ERROR.value, resp[2] if len(resp) > 2 else "Failed")
+                    self.engine.on_error_occurred(
+                        NetworkError.PROTOCOL_ERROR.value, resp[2] if len(resp) > 2 else "Failed"
+                    )
                     self.on_transfer_state_changed(remote_name, TransferState.FAILED.value)
                     return
 
@@ -238,13 +247,13 @@ class ClientTransferEngine:
                     while received < size:
                         if self.engine.shutdown_event.is_set():
                             raise ConnectionAbortedError("Client disconnected")
-                            
+
                         want = min(BUFFER_SIZE, size - received)
                         chunk = self.engine.proto.recv_exact(want)
-                        
+
                         if not cancel_event.is_set():
                             fh.write(chunk)
-                        
+
                         received += len(chunk)
 
                         now = time.time()
@@ -252,13 +261,15 @@ class ClientTransferEngine:
                             pct = int(received / size * 100) if size else 100
                             speed = (received / (now - start_time)) if (now - start_time) > 0 else 0.0
                             self.on_transfer_progress(pct)
-                            self.on_transfer_progress_detailed({
-                                "filename": remote_name,
-                                "bytes_transferred": received,
-                                "total_bytes": size,
-                                "percentage": pct,
-                                "speed_bps": speed
-                            })
+                            self.on_transfer_progress_detailed(
+                                {
+                                    "filename": remote_name,
+                                    "bytes_transferred": received,
+                                    "total_bytes": size,
+                                    "percentage": pct,
+                                    "speed_bps": speed,
+                                }
+                            )
                             last_emit = now
 
                 if cancel_event.is_set():

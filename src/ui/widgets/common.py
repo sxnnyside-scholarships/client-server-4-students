@@ -4,7 +4,7 @@ Module: common.py
 Purpose: Provides reusable, self-contained UI components shared across the application.
 
 Architectural Role:
-Acts as a standardized component library. It reduces code duplication in the main 
+Acts as a standardized component library. It reduces code duplication in the main
 window classes by centralizing the layout and styling of repeated elements.
 
 Responsibilities:
@@ -47,8 +47,8 @@ def format_file_size(size_bytes: int) -> str:
     if size_bytes < 1024 * 1024:
         return f"{size_bytes / 1024:.1f} KB"
     if size_bytes < 1024 * 1024 * 1024:
-        return f"{size_bytes / (1024 ** 2):.1f} MB"
-    return f"{size_bytes / (1024 ** 3):.1f} GB"
+        return f"{size_bytes / (1024**2):.1f} MB"
+    return f"{size_bytes / (1024**3):.1f} GB"
 
 
 class BrandingFooter(QLabel):
@@ -99,7 +99,7 @@ class LabeledInput(QWidget):
     A composite widget combining a `QLabel` and a `QLineEdit` horizontally.
 
     Why it exists:
-    Forms in PyQt often require pairing a label with an input. This widget bundles 
+    Forms in PyQt often require pairing a label with an input. This widget bundles
     them together to reduce boilerplate layout code in parent windows.
 
     Responsibilities:
@@ -195,9 +195,7 @@ class StatusBadge(QWidget):
             Falls back to the "offline" color if `state` is unrecognized.
         """
         color = status_color(self._theme_name, state)
-        self._dot.setStyleSheet(
-            f"background-color: {color}; border-radius: 4px;"
-        )
+        self._dot.setStyleSheet(f"background-color: {color}; border-radius: 4px;")
         glow_color = QColor(color)
         glow_color.setAlpha(180)
         self._glow.setColor(glow_color)

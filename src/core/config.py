@@ -4,7 +4,7 @@ Module: config.py
 Purpose: Handles loading and saving application settings from a JSON file.
 
 Architectural Role:
-Provides a centralized, single-source-of-truth for all runtime preferences 
+Provides a centralized, single-source-of-truth for all runtime preferences
 (locale, theme, server ports) across both the Client and Server applications.
 
 Responsibilities:
@@ -26,7 +26,7 @@ class ConfigManager:
     Manages application configuration stored in a JSON file.
 
     Why it exists:
-    Provides a persistent storage mechanism for application settings, ensuring 
+    Provides a persistent storage mechanism for application settings, ensuring
     user preferences survive across application reboots.
 
     Responsibilities:
@@ -46,10 +46,14 @@ class ConfigManager:
             "host": "0.0.0.0",
             "port": 2121,
             "max_connections": 5,
+            "enable_tls": False,
+            "cert_file": "cert.pem",
+            "key_file": "key.pem",
         },
         "client": {
             "default_host": "localhost",
             "default_port": 2121,
+            "enable_tls": False,
         },
     }
 
@@ -154,7 +158,7 @@ class ConfigManager:
         Sets a deeply nested setting and persists it to disk.
 
         Args:
-            *keys_and_value: An ordered sequence of string keys, where the final 
+            *keys_and_value: An ordered sequence of string keys, where the final
                              argument is the value to store.
 
         Returns:

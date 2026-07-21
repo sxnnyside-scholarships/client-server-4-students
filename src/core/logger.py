@@ -4,7 +4,7 @@ Module: logger.py
 Purpose: Provides a simple, consistent logging setup for both the client and server.
 
 Architectural Role:
-Standardizes telemetry and debugging output across the application. By centralizing 
+Standardizes telemetry and debugging output across the application. By centralizing
 logger creation, it ensures that logs are uniformly formatted and safely rotated.
 
 Responsibilities:
@@ -17,7 +17,7 @@ Expected Collaborators:
 - `src.core.runtime` (provides the directory path for log files).
 
 Important Implementation Notes:
-It is safe to call `setup_logger` multiple times for the same module name; it detects 
+It is safe to call `setup_logger` multiple times for the same module name; it detects
 existing handlers and avoids duplicating output streams.
 """
 
@@ -36,7 +36,7 @@ def setup_logger(
 
     Args:
         name: The string identifier for the logger (e.g., "server" or "client").
-        log_dir: The directory where log files should be written. If None, 
+        log_dir: The directory where log files should be written. If None,
                  only console logging is enabled.
         level: The minimum severity level to log (defaults to logging.INFO).
 

@@ -4,8 +4,8 @@ Module: theme_manager.py
 Purpose: Loads QSS stylesheets and applies them to the application dynamically.
 
 Architectural Role:
-Acts as the central styling orchestrator. It completely separates the visual design 
-from the functional Python code, allowing the GUI to be rebranded or switched into 
+Acts as the central styling orchestrator. It completely separates the visual design
+from the functional Python code, allowing the GUI to be rebranded or switched into
 "Dark Mode" without rebuilding or modifying the Qt layout structures.
 
 Responsibilities:
@@ -29,7 +29,7 @@ class ThemeManager:
     Handles loading and applying QSS themes to the running application.
 
     Why it exists:
-    Provides a standardized way to read CSS-like syntax from disk and inject it into 
+    Provides a standardized way to read CSS-like syntax from disk and inject it into
     the active Qt event loop, ensuring that all windows inherit the same visual design.
 
     Responsibilities:
@@ -73,11 +73,11 @@ class ThemeManager:
         if qss_path.exists():
             with open(qss_path, "r", encoding="utf-8") as fh:
                 template = fh.read()
-            
+
             palette = PALETTES.get(theme_id, PALETTES["mint_light"])
             for var, color in palette.items():
                 template = template.replace(var, color)
-                
+
             app.setStyleSheet(template)
         else:
             app.setStyleSheet("")

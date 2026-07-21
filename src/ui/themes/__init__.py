@@ -4,8 +4,8 @@ Package: src.ui.themes
 Purpose: Provides QSS (Qt Style Sheet) management and dynamic visual theming capabilities.
 
 Architectural Role:
-Acts as the styling engine. It isolates visual design constants (colors, margins, borders) 
-from the functional Python UI logic, ensuring the application can be visually rebranded 
+Acts as the styling engine. It isolates visual design constants (colors, margins, borders)
+from the functional Python UI logic, ensuring the application can be visually rebranded
 without modifying core source code.
 
 Responsibilities:
