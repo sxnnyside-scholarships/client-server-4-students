@@ -14,14 +14,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            exe_name: CS4S
-            artifact_name: CS4S-linux
+            artifact_name: CS4S-linux-x86_64.tar.gz
           - os: macos-latest
-            exe_name: CS4S
-            artifact_name: CS4S-macos
+            artifact_name: CS4S-macos.dmg
           - os: windows-latest
-            exe_name: CS4S.exe
-            artifact_name: CS4S-windows.exe
+            artifact_name: CS4S-windows-x64.exe
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -42,7 +39,7 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
-      - name: Install Qt6 system dependencies (Ubuntu)
+      - name: Install Qt6 system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
@@ -50,12 +47,35 @@ jobs:
             libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
             libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libx11-xcb1
 
-      - name: Build Standalone Executable
+      - name: Build
         run: poetry run python scripts/build_dist.py
 
-      - name: Rename executable to platform artifact name
+      # Linux: pack the single binary into a .tar.gz
+      - name: Package (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          cd dist
+          tar -czf CS4S-linux-x86_64.tar.gz CS4S
+
+      # macOS: create a proper .dmg disk image from the .app bundle
+      - name: Package (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          mkdir -p dist/dmg_stage
+          cp -r dist/CS4S.app dist/dmg_stage/
+          ln -s /Applications dist/dmg_stage/Applications
+          hdiutil create \
+            -volname "CS4S" \
+            -srcfolder dist/dmg_stage \
+            -ov \
+            -format UDZO \
+            dist/CS4S-macos.dmg
+
+      # Windows: rename to include platform and arch
+      - name: Package (Windows)
+        if: matrix.os == 'windows-latest'
         shell: bash
-        run: mv dist/${{ matrix.exe_name }} dist/${{ matrix.artifact_name }}
+        run: mv dist/CS4S.exe dist/CS4S-windows-x64.exe
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2

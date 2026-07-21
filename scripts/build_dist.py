@@ -32,22 +32,32 @@ def main():
         # Fallback to system-wide executable
         pyinstaller_cmd = "pyinstaller"
 
+    is_macos = sys.platform == "darwin"
+
     # Build the PyInstaller command
-    # We include localization and any other necessary data
+    # We include localization, themes and icons as bundled data assets
     command = [
         pyinstaller_cmd,
         "--noconfirm",
         "--clean",
-        "--windowed",  # Don't open a console window on launch
-        "--onefile",  # Create a single portable executable
+        "--windowed",  # No console window on launch
         "--name",
         "CS4S",
         "--add-data",
         f"src/localization{os.pathsep}src/localization",
         "--add-data",
         f"src/ui/themes{os.pathsep}src/ui/themes",
-        "main.py",
+        "--add-data",
+        f"src/ui/icons{os.pathsep}src/ui/icons",
     ]
+
+    if not is_macos:
+        # On macOS, skip --onefile so PyInstaller creates a proper .app bundle
+        # (a self-contained directory) instead of a raw Unix binary.
+        # On Windows and Linux, a single portable file is the standard.
+        command.append("--onefile")
+
+    command.append("main.py")
 
     print(f"Running command: {' '.join(command)}")
 
