@@ -32,6 +32,7 @@ from PyQt6.QtGui import QKeySequence, QShortcut
 from PyQt6.QtWidgets import (
     QAbstractItemView,
     QApplication,
+    QButtonGroup,
     QFileDialog,
     QHBoxLayout,
     QHeaderView,
@@ -40,6 +41,7 @@ from PyQt6.QtWidgets import (
     QMainWindow,
     QMenu,
     QProgressBar,
+    QPushButton,
     QStackedWidget,
     QStatusBar,
     QTableWidget,
@@ -54,15 +56,63 @@ from src.network.client_backend import ClientBackend
 from src.network.transfer_state import TransferState
 from src.ui.icons.icon_provider import get_icon
 from src.ui.themes.theme_manager import ThemeManager
-from src.ui.themes.tokens import icon_color
+from src.ui.themes.tokens import icon_color, surface_colors
 from src.ui.widgets.common import format_file_size
 from src.ui.widgets.inspector import ProtocolInspectorWidget
+from src.ui.widgets.ladder_diagram import LadderDiagramWidget
+from src.ui.widgets.missions import LabMissionsWidget, MissionsManager
+from src.ui.widgets.python_code_tab import PythonCodeWidget
+from src.ui.widgets.udp_comparison import UDPComparisonWidget
 from src.ui.widgets.nav_rail import NavRail
 from src.ui.widgets.section_card import SectionCard
 from src.ui.widgets.toggle_button import ToggleActionButton
-from src.ui.widgets.atoms import MintButton, MintTextInput, EmptyStateWidget, Breadcrumb, MintIconButton, MintDialog
+from src.ui.widgets.atoms import (
+    MintButton,
+    MintTextInput,
+    MintCheckbox,
+    EmptyStateWidget,
+    Breadcrumb,
+    MintIconButton,
+    MintDialog,
+)
 
 _ICON_SIZE = QSize(16, 16)
+
+
+class _LabTabButton(QPushButton):
+    """Segmented tab button for the Client Lab View Hub."""
+
+    def __init__(self, text: str, icon_name: str, theme_name: str, parent=None):
+        super().__init__(parent)
+        self._theme_name = theme_name
+        self._icon_name = icon_name
+        self.setCheckable(True)
+        self.setFixedHeight(34)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setText(text)
+        self._update_style(False)
+        self.toggled.connect(self._update_style)
+
+    def _update_style(self, checked: bool):
+        role = "on-accent" if checked else "default"
+        self.setIcon(get_icon(self._icon_name, icon_color(self._theme_name, role)))
+        self.setIconSize(_ICON_SIZE)
+        if checked:
+            self.setStyleSheet(
+                "QPushButton { background-color: #45B7A0; color: #FFFFFF; "
+                "border: none; border-radius: 8px; font-weight: 700; "
+                "font-size: 12px; padding: 4px 10px; }"
+            )
+        else:
+            colors = surface_colors(self._theme_name)
+            text_color = "#636E72" if "light" in self._theme_name else "#8A94A6"
+            hover_bg = "#E9ECEF" if "light" in self._theme_name else "#3A4260"
+            self.setStyleSheet(
+                f"QPushButton {{ background-color: {colors['surface']}; color: {text_color}; "
+                f"border: 1px solid {colors['border']}; border-radius: 8px; font-weight: 600; "
+                f"font-size: 12px; padding: 4px 10px; }} "
+                f"QPushButton:hover {{ background-color: {hover_bg}; }}"
+            )
 
 
 class TransferRow(QWidget):
@@ -105,7 +155,9 @@ class TransferRow(QWidget):
         layout.setSpacing(8)
 
         self.icon_label = QLabel()
-        self.icon_label.setPixmap(get_icon("upload" if is_upload else "download", icon_color(theme_name)).pixmap(14, 14))
+        self.icon_label.setPixmap(
+            get_icon("upload" if is_upload else "download", icon_color(theme_name)).pixmap(14, 14)
+        )
         layout.addWidget(self.icon_label)
 
         self.name_label = QLabel(filename)
@@ -168,6 +220,7 @@ class ClientWindow(QMainWindow):
         app: QApplication,
         backend: ClientBackend,
         runtime=None,
+        embedded: bool = False,
     ):
         super().__init__()
         self.config = config
@@ -175,6 +228,7 @@ class ClientWindow(QMainWindow):
         self.themes = themes
         self.app = app
         self.runtime = runtime
+        self.embedded = embedded
 
         self.backend = backend
         self._current_path = ""  # relative path inside user sandbox
@@ -185,8 +239,15 @@ class ClientWindow(QMainWindow):
         self._theme_name = self.config.get("theme", "mint_light")
         self._connection_state = ("offline", "client.badge_disconnected", {})
 
-        self.setMinimumSize(1180, 720)
+        if self.embedded:
+            self.setMinimumSize(420, 480)
+        else:
+            self.setMinimumSize(960, 620)
+
         self._build_ui()
+        if self.embedded:
+            self.rail.set_compact(True)
+            self.menuBar().setVisible(False)
         self._wire_signals()
         self._set_connected_state(False)
         self.retranslate()
@@ -218,8 +279,12 @@ class ClientWindow(QMainWindow):
         # ── central content: Files / Lab View, mutually exclusive ────
         content_wrap = QWidget()
         content_layout = QVBoxLayout(content_wrap)
-        content_layout.setContentsMargins(20, 20, 20, 16)
-        content_layout.setSpacing(12)
+        if self.embedded:
+            content_layout.setContentsMargins(8, 8, 8, 8)
+            content_layout.setSpacing(8)
+        else:
+            content_layout.setContentsMargins(18, 16, 18, 14)
+            content_layout.setSpacing(12)
 
         self.stack = QStackedWidget()
         content_layout.addWidget(self.stack)
@@ -330,6 +395,12 @@ class ClientWindow(QMainWindow):
             group.addWidget(field)
             rail.form_layout.addLayout(group)
 
+        self.tls_checkbox = MintCheckbox(theme_name=self._theme_name)
+        tls_val = self.config.get_nested("client", "enable_tls", default=False)
+        self.tls_checkbox.setChecked(tls_val is True or tls_val == "true")
+        self.tls_checkbox.toggled.connect(lambda v: self.config.set_nested("client", "enable_tls", v))
+        rail.form_layout.addWidget(self.tls_checkbox)
+
         # Connect/Disconnect used to be two side-by-side buttons that only
         # ever had one enabled at a time — the same "competing controls for
         # one binary state" pattern as Start/Stop Server. One toggle button.
@@ -345,7 +416,8 @@ class ClientWindow(QMainWindow):
         self.setTabOrder(self.host_input, self.port_input)
         self.setTabOrder(self.port_input, self.user_input)
         self.setTabOrder(self.user_input, self.pass_input)
-        self.setTabOrder(self.pass_input, self.connection_toggle_btn)
+        self.setTabOrder(self.pass_input, self.tls_checkbox)
+        self.setTabOrder(self.tls_checkbox, self.connection_toggle_btn)
 
     def _build_files_page(self) -> QWidget:
         page = QWidget()
@@ -436,14 +508,93 @@ class ClientWindow(QMainWindow):
         page = QWidget()
         root = QVBoxLayout(page)
         root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(12)
 
         self.inspector_card = SectionCard(self._theme_name, accent="sage")
+        card_layout = self.inspector_card.content_layout
+
+        # ── Segmented Lab Tab Selector ──────────────────────────
+        tab_bar = QHBoxLayout()
+        tab_bar.setSpacing(6)
+
+        self.tab_group = QButtonGroup(self)
+        self.tab_group.setExclusive(True)
+
+        self.tab_inspector_btn = _LabTabButton("", "terminal", self._theme_name)
+        self.tab_ladder_btn = _LabTabButton("", "move", self._theme_name)
+        self.tab_missions_btn = _LabTabButton("", "flask", self._theme_name)
+        self.tab_code_btn = _LabTabButton("", "document", self._theme_name)
+        self.tab_udp_btn = _LabTabButton("", "refresh", self._theme_name)
+
+        self.tab_inspector_btn.setChecked(True)
+
+        for i, btn in enumerate(
+            [
+                self.tab_inspector_btn,
+                self.tab_ladder_btn,
+                self.tab_missions_btn,
+                self.tab_code_btn,
+                self.tab_udp_btn,
+            ]
+        ):
+            self.tab_group.addButton(btn, i)
+            tab_bar.addWidget(btn)
+
+        tab_bar.addStretch()
+        card_layout.addLayout(tab_bar)
+
+        # ── Stacked Content Views ───────────────────────────────
+        self.lab_stack = QStackedWidget()
+
+        # 1. Inspector
         self.inspector = ProtocolInspectorWidget(
             locale=self.locale, icon_color=icon_color(self._theme_name), theme_name=self._theme_name
         )
-        self.inspector_card.content_layout.addWidget(self.inspector)
+        self.lab_stack.addWidget(self.inspector)
+
+        # 2. Ladder Sequence Diagram
+        self.ladder = LadderDiagramWidget(locale=self.locale, theme_name=self._theme_name)
+        self.lab_stack.addWidget(self.ladder)
+
+        # 3. Guided Lab Challenges
+        self.missions_mgr = MissionsManager(self)
+        self.missions_widget = LabMissionsWidget(
+            manager=self.missions_mgr, locale=self.locale, theme_name=self._theme_name
+        )
+        self.lab_stack.addWidget(self.missions_widget)
+
+        # 4. Python Socket Code Generator Tab
+        host_val = self.host_input.text().strip() or "127.0.0.1"
+        try:
+            port_val = int(self.port_input.text().strip() or 2121)
+        except ValueError:
+            port_val = 2121
+        user_val = self.user_input.text().strip() or "admin"
+        tls_val = self.tls_checkbox.isChecked()
+
+        self.python_code = PythonCodeWidget(
+            locale=self.locale,
+            theme_name=self._theme_name,
+            host=host_val,
+            port=port_val,
+            username=user_val,
+            tls_enabled=tls_val,
+        )
+        self.lab_stack.addWidget(self.python_code)
+
+        # 5. Connectionless UDP Datagram Channel
+        self.udp_comparison = UDPComparisonWidget(
+            locale=self.locale,
+            theme_name=self._theme_name,
+            host=host_val,
+            udp_port=port_val + 1,
+        )
+        self.lab_stack.addWidget(self.udp_comparison)
+
+        card_layout.addWidget(self.lab_stack, 1)
         root.addWidget(self.inspector_card)
 
+        self.tab_group.idClicked.connect(self.lab_stack.setCurrentIndex)
         return page
 
     # ── signals ───────────────────────────────────────────────
@@ -485,12 +636,44 @@ class ClientWindow(QMainWindow):
         self.backend.transfer_progress_detailed.connect(self._on_transfer_progress_detailed)
         self.backend.transfer_state_changed.connect(self._on_transfer_state_changed)
         self.backend.action_completed.connect(self._on_action_completed)
+        self.backend.broadcast_received.connect(self._on_broadcast_received)
         self.backend.packet_tx.connect(self.inspector.log_tx)
+        self.backend.packet_tx.connect(self.ladder.add_tx)
+        self.backend.packet_tx.connect(self.missions_mgr.on_packet_tx)
+
         self.backend.packet_rx.connect(self.inspector.log_rx)
+        self.backend.packet_rx.connect(self.ladder.add_rx)
+        self.backend.packet_rx.connect(self.missions_mgr.on_packet_rx)
+
         self.backend.rtt_measured.connect(self.inspector.set_rtt)
+        self.backend.rtt_measured.connect(self.ladder.set_rtt)
+
+        self.host_input.textChanged.connect(self._sync_python_code_params)
+        self.port_input.textChanged.connect(self._sync_python_code_params)
+        self.user_input.textChanged.connect(self._sync_python_code_params)
+        self.tls_checkbox.toggled.connect(self._sync_python_code_params)
 
         self.rtt_timer = QTimer(self)
         self.rtt_timer.timeout.connect(self.backend.measure_rtt)
+
+    def _sync_python_code_params(self):
+        try:
+            port = int(self.port_input.text().strip() or 2121)
+        except ValueError:
+            port = 2121
+        host = self.host_input.text().strip() or "127.0.0.1"
+        self.python_code.set_connection_params(
+            host=host,
+            port=port,
+            username=self.user_input.text().strip() or "admin",
+            tls_enabled=self.tls_checkbox.isChecked(),
+        )
+        self.udp_comparison.set_target(host=host, udp_port=port + 1)
+
+    def _on_broadcast_received(self, message: str):
+        """Displays teacher broadcast announcement dialog."""
+        t = self.locale.get
+        MintDialog.message(self, self._theme_name, t("client.broadcast_alert_title"), message)
 
     def _on_mode_changed(self, mode: str):
         self.stack.setCurrentWidget(self.lab_page if mode == "lab" else self.files_page)
@@ -514,6 +697,8 @@ class ClientWindow(QMainWindow):
         self.port_input.setAccessibleName(t("a11y.port"))
         self.user_input.setAccessibleName(t("a11y.username"))
         self.pass_input.setAccessibleName(t("a11y.password"))
+        self.tls_checkbox.setText(t("client.enable_tls"))
+        self.tls_checkbox.setToolTip(t("tooltip.enable_tls"))
         self.connection_toggle_btn.setText(
             t("client.disconnect") if self.connection_toggle_btn.isChecked() else t("client.connect")
         )
@@ -523,7 +708,17 @@ class ClientWindow(QMainWindow):
         self.lab_nav_btn.setText(t("client.lab_view_btn"))
         self.rail.set_nav_section_label(t("client.nav_section_label"))
         self.rail.back_btn.setText(t("common.back"))
-        self.inspector_card.set_title(t("inspector.title"))
+        self.inspector_card.set_title(t("lab.hub_title"))
+        self.tab_inspector_btn.setText(t("lab.tab_inspector"))
+        self.tab_inspector_btn.setToolTip(t("tooltip.tab_inspector"))
+        self.tab_ladder_btn.setText(t("lab.tab_ladder"))
+        self.tab_ladder_btn.setToolTip(t("tooltip.tab_ladder"))
+        self.tab_missions_btn.setText(t("lab.tab_missions"))
+        self.tab_missions_btn.setToolTip(t("tooltip.tab_missions"))
+        self.tab_code_btn.setText(t("lab.tab_code"))
+        self.tab_code_btn.setToolTip(t("tooltip.tab_code"))
+        self.tab_udp_btn.setText(t("lab.tab_udp"))
+        self.tab_udp_btn.setToolTip(t("tooltip.tab_udp"))
         self.table.setHorizontalHeaderLabels([t("client.name_col"), t("client.size_col"), t("client.type_col")])
         self._update_path_label()
 
@@ -558,6 +753,10 @@ class ClientWindow(QMainWindow):
         self.action_about.setText(t("menu.about"))
 
         self.inspector.retranslate()
+        self.ladder.retranslate()
+        self.missions_widget.retranslate()
+        self.python_code.retranslate()
+        self.udp_comparison.retranslate()
         self.empty_state.set_message(t("client.empty_directory"))
         self.empty_not_connected.set_message(t("client.empty_not_connected"))
 
@@ -592,11 +791,13 @@ class ClientWindow(QMainWindow):
 
         self.config.set_nested("client", "default_host", host)
         self.config.set_nested("client", "default_port", port)
+        enable_tls = self.tls_checkbox.isChecked()
+        self.config.set_nested("client", "enable_tls", enable_tls)
 
         t = self.locale.get
         self._show_status(t("client.connecting"))
         self._set_status_badge("connecting", "client.badge_connecting")
-        self.backend.connect_to_server(host, port, user, pwd)
+        self.backend.connect_to_server(host, port, user, pwd, enable_tls=enable_tls)
 
     def _do_disconnect(self):
         self.backend.disconnect()
@@ -610,6 +811,9 @@ class ClientWindow(QMainWindow):
         self._refresh()
         self.rtt_timer.start(3000)
         self.backend.measure_rtt()
+        if self.tls_checkbox.isChecked():
+            self.missions_mgr.on_tls_connected()
+        self.missions_mgr.on_auth_success()
 
     def _on_auth_fail(self, reason: str):
         self._set_connected_state(False)
@@ -661,6 +865,7 @@ class ClientWindow(QMainWindow):
         self.port_input.setEnabled(not connected)
         self.user_input.setEnabled(not connected)
         self.pass_input.setEnabled(not connected)
+        self.tls_checkbox.setEnabled(not connected)
 
         self.refresh_btn.setEnabled(connected)
         self.go_up_btn.setEnabled(connected)
@@ -931,7 +1136,9 @@ class ClientWindow(QMainWindow):
         filename = name_item.text()
 
         t = self.locale.get
-        dest_dir, ok = MintDialog.get_text(self, self._theme_name, t("client.move_action"), t("client.enter_destination"))
+        dest_dir, ok = MintDialog.get_text(
+            self, self._theme_name, t("client.move_action"), t("client.enter_destination")
+        )
         if ok and dest_dir.strip():
             self.backend.move_file(self._remote_path(filename), dest_dir.strip())
 

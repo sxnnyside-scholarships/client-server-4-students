@@ -52,9 +52,9 @@ Every string the user can see — button text, tooltip, dialog title, dialog bod
 placeholder text, dynamically-formatted status text — must come from
 `LocaleManager.get(key, **kwargs)`. Never write:
 ```python
-QPushButton("Force Drop Client")            # WRONG
-QMessageBox.question(self, "Confirm", f"Delete '{name}'?")   # WRONG
-t("some_key") or "Fallback Text"            # WRONG — hides missing translations
+QPushButton("Force Drop Client")  # WRONG
+QMessageBox.question(self, "Confirm", f"Delete '{name}'?")  # WRONG
+t("some_key") or "Fallback Text"  # WRONG — hides missing translations
 ```
 If a key is missing, `LocaleManager` renders `[key]` — that visible failure mode is
 correct and intentional. Do not paper over it with an `or "fallback"` pattern.
@@ -68,7 +68,7 @@ icon from `src.ui.icons.icon_provider.get_icon(name, color, size)`.
 from src.ui.icons.icon_provider import get_icon
 from src.ui.themes.tokens import icon_color
 
-theme_name = self.config.get("theme", "mint_light")   # already stored as self._theme_name in windows
+theme_name = self.config.get("theme", "mint_light")  # already stored as self._theme_name in windows
 btn.setIcon(get_icon("upload", icon_color(theme_name, "on-accent")))
 btn.setIconSize(QSize(16, 16))
 ```

@@ -8,7 +8,7 @@ description: Rules for localizing UI strings and managing i18n
 This repository uses `python-i18n` for internationalization. Follow these guidelines whenever you add, modify, or review user-facing strings.
 
 ## 1. No Hardcoded Strings
-- Never write hardcoded UI strings in Python or QML files. 
+- Never write hardcoded UI strings in Python or QML files.
 - Example: Do not use `button.setText("Start")`. Instead, use `button.setText(locale.get("launcher.start_btn"))`.
 - This applies to tooltips, dialogs, labels, window titles, and any text rendered on the screen.
 

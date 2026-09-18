@@ -314,7 +314,7 @@ QTextEdit, QPlainTextEdit {
     border: 1px solid #DFE6E9;
     border-radius: 6px;
     padding: 8px;
-    font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", "Menlo", monospace;
+    font-family: "SF Mono", "Menlo", "Cascadia Code", "Consolas", "Courier New", monospace;
     font-size: 12px;
 }
 
@@ -331,7 +331,7 @@ QLabel#inspectorHeaderLabel {
 }
 
 QLabel#rttLabel {
-    font-family: "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    font-family: "Menlo", "Cascadia Code", "Consolas", "Courier New", monospace;
     font-size: 12px;
     color: #636E72;
 }
@@ -344,7 +344,7 @@ QLabel#explanationLabel {
 }
 
 QLabel#statsLabel {
-    font-family: "JetBrains Mono", "Cascadia Code", "Menlo", monospace;
+    font-family: "Menlo", "Cascadia Code", "Consolas", "Courier New", monospace;
     font-size: 13px;
     color: #636E72;
 }

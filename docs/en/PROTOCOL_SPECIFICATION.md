@@ -1,7 +1,7 @@
 # Protocol Specification: CS4S/2.0
 
 ## 1. Overview
-The **Client-Server 4 Students (CS4S)** protocol is a custom, line-based, application-layer networking protocol designed specifically for educational networking laboratories. It runs over standard TCP (and optionally TLS). 
+The **Client-Server 4 Students (CS4S)** protocol is a custom, line-based, application-layer networking protocol designed specifically for educational networking laboratories. It runs over standard TCP (and optionally TLS).
 
 The primary goal of the protocol is to be **observable**—it deliberately uses plain UTF-8 text framing so students can easily read packet captures (e.g., in Wireshark) and observe socket interactions.
 
@@ -35,7 +35,7 @@ These are the requests sent from the Client to the Server.
 
 ### Authentication
 - **`AUTH|<username>|<password>`**
-  - **Purpose:** Authenticates the user. Note that passwords are intentionally sent in plaintext over standard TCP for educational observation. 
+  - **Purpose:** Authenticates the user. Note that passwords are intentionally sent in plaintext over standard TCP for educational observation.
   - **Response:** `230|OK|AUTH_OK` or `430|ERROR|AUTH_FAIL`
 
 ### File Operations (Sandbox)

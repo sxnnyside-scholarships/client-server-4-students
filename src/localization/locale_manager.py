@@ -126,8 +126,17 @@ class LocaleManager(QObject):
                 fallback_key = f"en.{key}"
                 fallback_text = i18n.t(fallback_key, **kwargs)
                 if fallback_text != fallback_key:
-                    return fallback_text
-            return f"[{key}]"
+                    text = fallback_text
+                else:
+                    return f"[{key}]"
+            else:
+                return f"[{key}]"
+
+        if kwargs and "{" in text:
+            try:
+                return text.format(**kwargs)
+            except Exception:
+                return text
 
         return text
 

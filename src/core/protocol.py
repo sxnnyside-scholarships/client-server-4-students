@@ -102,11 +102,12 @@ class ProtocolHandler:
     - It does NOT manage the connection lifecycle (connect/disconnect/reconnect).
     """
 
-    def __init__(self, sock, on_tx=None, on_rx=None):
+    def __init__(self, sock, on_tx=None, on_rx=None, on_broadcast=None):
         self.sock = sock
         self._buffer = b""
         self.on_tx = on_tx
         self.on_rx = on_rx
+        self.on_broadcast = on_broadcast
         self.bytes_tx = 0
         self.bytes_rx = 0
         self.messages_tx = 0
@@ -174,11 +175,22 @@ class ProtocolHandler:
         Side Effects:
             Blocks the current thread until a newline character is received from the socket.
             Mutates the internal byte buffer.
+            If an unsolicited BROADCAST packet arrives and `on_broadcast` is registered,
+            the callback is fired and reception continues for the expected response.
 
         Failure Behavior:
             Raises `ConnectionError` if the socket closes before a newline is received.
         """
-        return self._recv_line().split(SEPARATOR)
+        while True:
+            parts = self._recv_line().split(SEPARATOR)
+            if parts and parts[0].upper() == "BROADCAST" and self.on_broadcast:
+                msg = parts[1] if len(parts) > 1 else ""
+                try:
+                    self.on_broadcast(msg)
+                except Exception:
+                    pass
+                continue
+            return parts
 
     def send_bytes(self, data: bytes):
         """

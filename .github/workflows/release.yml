@@ -25,19 +25,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Python 3.14
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
         with:
-          python-version: '3.14'
+          enable-cache: true
 
-      - name: Install Poetry
-        run: pip install poetry
-
-      - name: Configure Poetry to use in-project venv
-        run: poetry config virtualenvs.in-project true
+      - name: Install Python
+        run: uv python install
 
       - name: Install dependencies
-        run: poetry install
+        run: uv sync --all-groups
 
       - name: Install Qt6 system dependencies (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -48,7 +45,7 @@ jobs:
             libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxcb-shape0 libx11-xcb1
 
       - name: Build
-        run: poetry run python scripts/build_dist.py
+        run: uv run python scripts/build_dist.py
 
       # Linux: pack the single binary into a .tar.gz
       - name: Package (Linux)

@@ -319,3 +319,16 @@ def console_colors(theme_name: str) -> dict:
             "encrypted": "#E1A73C",  # Status connecting (amber)
             "muted": "#636E72",  # Text secondary
         }
+
+
+def get_monospace_font(size: int = 11, bold: bool = False):
+    """
+    Returns a fast, system-native fixed-pitch monospace QFont without triggering
+    Qt's expensive font family alias resolution search on systems lacking JetBrains Mono.
+    """
+    from PyQt6.QtGui import QFontDatabase
+
+    font = QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont)
+    font.setPointSize(size)
+    font.setBold(bold)
+    return font

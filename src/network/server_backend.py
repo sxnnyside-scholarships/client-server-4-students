@@ -237,24 +237,56 @@ class ServerBackend(QObject):
         """
         self.engine.simulate_packet_loss = val
 
-    def start(self, host: str, port: int):
+    @property
+    def enable_tls(self) -> bool:
+        """
+        Indicates whether the server wraps incoming client connections in TLS.
+
+        Returns:
+            bool: True if TLS encryption is active, False otherwise.
+        """
+        return getattr(self.engine, "enable_tls", False)
+
+    @enable_tls.setter
+    def enable_tls(self, val: bool):
+        """
+        Enables or disables TLS wrapping for client connections.
+
+        Args:
+            val (bool): True to enable TLS, False to use plaintext.
+        """
+        self.engine.enable_tls = val
+
+    def start(self, host: str, port: int, enable_tls: bool | None = None):
         """
         Starts the TCP listening socket on a background thread.
 
         Args:
             host: The IP address to bind to.
             port: The TCP port to listen on.
+            enable_tls: Optional flag to toggle TLS wrapping on start.
 
         Returns:
             None. (Asynchronous operation).
 
         Side Effects:
             Spawns the main listener thread.
+            Generates ephemeral self-signed certificates if enable_tls is True and certs are missing.
             Emits `server_started`.
 
         Failure Behavior:
             Fails if the port is already in use.
         """
+        if enable_tls is not None:
+            self.engine.enable_tls = enable_tls
+
+        if self.engine.enable_tls:
+            from src.core.cert_util import ensure_self_signed_cert
+
+            cert_p, key_p = ensure_self_signed_cert()
+            self.engine.cert_file = str(cert_p)
+            self.engine.key_file = str(key_p)
+
         self.engine.start(host, port)
 
     def stop(self):
@@ -293,3 +325,15 @@ class ServerBackend(QObject):
             Silently ignores the request if the client is already disconnected.
         """
         self.engine.force_disconnect_client(addr_str)
+
+    def broadcast_message(self, message: str) -> int:
+        """
+        Transmits an educational broadcast announcement to all connected clients.
+
+        Args:
+            message: The announcement text to broadcast.
+
+        Returns:
+            int: Number of clients to which the message was successfully dispatched.
+        """
+        return self.engine.broadcast_message(message)

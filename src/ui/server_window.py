@@ -38,6 +38,7 @@ from PyQt6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMenu,
+    QSplitter,
     QStackedWidget,
     QStatusBar,
     QTextEdit,
@@ -60,7 +61,15 @@ from src.ui.widgets.graph import ConnectionGraphWidget
 from src.ui.widgets.nav_rail import NavRail
 from src.ui.widgets.section_card import SectionCard
 from src.ui.widgets.toggle_button import ToggleActionButton
-from src.ui.widgets.atoms import MintButton, MintTextInput, MintStepper, EmptyStateWidget, MintDialog, MintIconButton
+from src.ui.widgets.atoms import (
+    MintButton,
+    MintTextInput,
+    MintStepper,
+    MintCheckbox,
+    EmptyStateWidget,
+    MintDialog,
+    MintIconButton,
+)
 
 _ICON_SIZE = QSize(16, 16)
 
@@ -149,6 +158,7 @@ class ServerWindow(QMainWindow):
         files: FileManager,
         backend: ServerBackend,
         runtime=None,
+        embedded: bool = False,
     ):
         super().__init__()
         self.config = config
@@ -156,16 +166,25 @@ class ServerWindow(QMainWindow):
         self.themes = themes
         self.app = app
         self.runtime = runtime
+        self.embedded = embedded
 
         # Injected Core components
         self.auth = auth
         self.files = files
         self.backend = backend
         self._theme_name = self.config.get("theme", "mint_light")
-        self.logger = setup_logger("server", self.runtime.logs_dir)
+        logs_dir = getattr(self.runtime, "logs_dir", None)
+        self.logger = setup_logger("server", logs_dir)
 
-        self.setMinimumSize(1220, 760)
+        if self.embedded:
+            self.setMinimumSize(420, 480)
+        else:
+            self.setMinimumSize(960, 620)
+
         self._build_ui()
+        if self.embedded:
+            self.rail.set_compact(True)
+            self.menuBar().setVisible(False)
         self._wire_signals()
         self.retranslate()
         self._refresh_user_list()
@@ -200,8 +219,12 @@ class ServerWindow(QMainWindow):
         # ── central content: Overview / Lab View, mutually exclusive ──
         content_wrap = QWidget()
         content_layout = QVBoxLayout(content_wrap)
-        content_layout.setContentsMargins(20, 20, 20, 16)
-        content_layout.setSpacing(12)
+        if self.embedded:
+            content_layout.setContentsMargins(8, 8, 8, 8)
+            content_layout.setSpacing(8)
+        else:
+            content_layout.setContentsMargins(18, 16, 18, 14)
+            content_layout.setSpacing(12)
 
         self.stack = QStackedWidget()
         content_layout.addWidget(self.stack)
@@ -291,6 +314,12 @@ class ServerWindow(QMainWindow):
             group.addWidget(field)
             rail.form_layout.addLayout(group)
 
+        self.tls_checkbox = MintCheckbox(theme_name=self._theme_name)
+        tls_val = self.config.get_nested("server", "enable_tls", default=False)
+        self.tls_checkbox.setChecked(tls_val is True or tls_val == "true")
+        self.tls_checkbox.toggled.connect(lambda v: self.config.set_nested("server", "enable_tls", v))
+        rail.form_layout.addWidget(self.tls_checkbox)
+
         self.server_toggle_btn = ToggleActionButton(self._theme_name, "play", "stop")
         rail.form_layout.addWidget(self.server_toggle_btn)
 
@@ -299,19 +328,40 @@ class ServerWindow(QMainWindow):
         self.port_input.setAccessibleName(self.locale.get("a11y.bind_port"))
 
         self.setTabOrder(self.host_input, self.port_input)
-        self.setTabOrder(self.port_input, self.server_toggle_btn)
+        self.setTabOrder(self.port_input, self.tls_checkbox)
+        self.setTabOrder(self.tls_checkbox, self.server_toggle_btn)
 
     def _build_overview_page(self) -> QWidget:
         page = QWidget()
         root = QGridLayout(page)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(14)
+        root.setSpacing(8 if self.embedded else 14)
+
+        # ── Top: Metrics Summary Bar ───────────────────────
+        self.stats_container = QWidget()
+        self.stats_layout = QHBoxLayout(self.stats_container)
+        self.stats_layout.setContentsMargins(0, 0, 0, 0)
+        self.stats_layout.setSpacing(8 if self.embedded else 14)
+
+        self.tile_tx = StatTile("server.stat_tx", self.locale, self._theme_name)
+        self.tile_rx = StatTile("server.stat_rx", self.locale, self._theme_name)
+        self.tile_conn = StatTile("server.stat_connections", self.locale, self._theme_name)
+        self.tile_pkts = StatTile("server.stat_packets", self.locale, self._theme_name)
+
+        card_bg = surface_colors(self._theme_name)["surface"]
+        border_c = surface_colors(self._theme_name)["border"]
+        for tile in (self.tile_tx, self.tile_rx, self.tile_conn, self.tile_pkts):
+            tile.setStyleSheet(f"background-color: {card_bg}; border: 1px solid {border_c}; border-radius: 8px;")
+            self.stats_layout.addWidget(tile)
+
+        root.addWidget(self.stats_container, 0, 0, 1, 2)
 
         # ── Left: Server Logs ────────────────────────────
         self.log_card = SectionCard(self._theme_name, accent="mint")
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setObjectName("logArea")
+        self.log_text.setLineWrapMode(QTextEdit.LineWrapMode.NoWrap)
         self.log_text.document().setMaximumBlockCount(2000)
         self.log_card.content_layout.addWidget(self.log_text)
 
@@ -320,8 +370,6 @@ class ServerWindow(QMainWindow):
         self.log_copy_btn = MintIconButton("document", self._theme_name)
         self.log_card.header_actions_layout.addWidget(self.log_copy_btn)
         self.log_card.header_actions_layout.addWidget(self.log_clear_btn)
-
-        root.addWidget(self.log_card, 0, 0)
 
         # ── Right: Connected Clients ─────────────────────
         self.clients_card = SectionCard(self._theme_name, accent="mint")
@@ -333,10 +381,18 @@ class ServerWindow(QMainWindow):
         self.clients_list.setVisible(False)
         self.clients_card.content_layout.addWidget(self.clients_list)
         self.clients_card.content_layout.addWidget(self.clients_empty)
-        root.addWidget(self.clients_card, 0, 1)
 
-        root.setColumnStretch(0, 3)
-        root.setColumnStretch(1, 2)
+        # Resizable Splitter for Logs and Clients
+        self.overview_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.overview_splitter.setChildrenCollapsible(False)
+        self.overview_splitter.addWidget(self.log_card)
+        self.overview_splitter.addWidget(self.clients_card)
+        self.overview_splitter.setStretchFactor(0, 7)
+        self.overview_splitter.setStretchFactor(1, 3)
+        self.overview_splitter.setSizes([520, 240])
+
+        root.addWidget(self.overview_splitter, 1, 0, 1, 2)
+        root.setRowStretch(1, 1)
 
         return page
 
@@ -346,23 +402,17 @@ class ServerWindow(QMainWindow):
         root.setContentsMargins(0, 0, 0, 0)
 
         self.users_card = SectionCard(self._theme_name, accent="mint")
-        self.users_list = QListWidget()
-        self.users_list.itemSelectionChanged.connect(self._on_user_selection_changed)
-        self.users_empty = EmptyStateWidget(self.locale.get("server.empty_users"), self._theme_name, "leaf")
-        self.users_empty.setVisible(True)
-        self.users_list.setVisible(False)
-        self.users_card.content_layout.addWidget(self.users_list, 1)
-        self.users_card.content_layout.addWidget(self.users_empty, 1)
 
+        # Top Action & Input Bar inside card
         form = QHBoxLayout()
-        form.setSpacing(12)
-        form.setContentsMargins(0, 12, 0, 0)
+        form.setSpacing(8)
+        form.setContentsMargins(0, 0, 0, 10)
 
         self.user_field_label = QLabel()
         self.user_field_label.setObjectName("formLabel")
         self.user_field_label.hide()  # We will use placeholders instead for compact layout
         self.new_user_input = MintTextInput(self._theme_name)
-        self.new_user_input.setMinimumHeight(38)
+        self.new_user_input.setMinimumHeight(36)
         self.new_user_input.textChanged.connect(self._clear_user_error)
 
         self.pass_field_label = QLabel()
@@ -370,25 +420,31 @@ class ServerWindow(QMainWindow):
         self.pass_field_label.hide()
         self.new_pass_input = MintTextInput(self._theme_name)
         self.new_pass_input.setEchoMode(QLineEdit.EchoMode.Password)
-        self.new_pass_input.setMinimumHeight(38)
+        self.new_pass_input.setMinimumHeight(36)
         self.new_pass_input.textChanged.connect(self._clear_user_error)
 
-        form.addWidget(self.new_user_input, 1)
-        form.addWidget(self.new_pass_input, 1)
+        form.addWidget(self.new_user_input, 2)
+        form.addWidget(self.new_pass_input, 2)
 
         self.add_user_btn = MintButton("", self._theme_name)
         self.add_user_btn.setObjectName("primaryButton")
         self.add_user_btn.setIcon(get_icon("user-add", icon_color(self._theme_name, "on-accent")))
         self.add_user_btn.setIconSize(_ICON_SIZE)
-        self.add_user_btn.setMinimumHeight(38)
+        self.add_user_btn.setMinimumHeight(36)
         self.remove_user_btn = MintButton("", self._theme_name)
         self.remove_user_btn.setObjectName("dangerButton")
         self.remove_user_btn.setIcon(get_icon("user-x", icon_color(self._theme_name, "on-accent")))
         self.remove_user_btn.setIconSize(_ICON_SIZE)
-        self.remove_user_btn.setMinimumHeight(38)
+        self.remove_user_btn.setMinimumHeight(36)
+
+        self.import_csv_btn = MintButton("", self._theme_name)
+        self.import_csv_btn.setIcon(get_icon("folder-add", icon_color(self._theme_name, "on-accent")))
+        self.import_csv_btn.setIconSize(_ICON_SIZE)
+        self.import_csv_btn.setMinimumHeight(36)
 
         form.addWidget(self.add_user_btn)
         form.addWidget(self.remove_user_btn)
+        form.addWidget(self.import_csv_btn)
 
         self.users_card.content_layout.addLayout(form)
 
@@ -396,9 +452,18 @@ class ServerWindow(QMainWindow):
         self.form_error_label.setObjectName("formErrorLabel")
         self.form_error_label.setVisible(False)
         self.form_error_label.setStyleSheet(
-            f"color: {status_color(self._theme_name, 'error')}; font-size: 13px; margin-top: 4px;"
+            f"color: {status_color(self._theme_name, 'error')}; font-size: 13px; margin-bottom: 6px;"
         )
         self.users_card.content_layout.addWidget(self.form_error_label)
+
+        # Users list below the action bar
+        self.users_list = QListWidget()
+        self.users_list.itemSelectionChanged.connect(self._on_user_selection_changed)
+        self.users_empty = EmptyStateWidget(self.locale.get("server.empty_users"), self._theme_name, "leaf")
+        self.users_empty.setVisible(True)
+        self.users_list.setVisible(False)
+        self.users_card.content_layout.addWidget(self.users_list, 1)
+        self.users_card.content_layout.addWidget(self.users_empty, 1)
 
         root.addWidget(self.users_card)
 
@@ -408,7 +473,7 @@ class ServerWindow(QMainWindow):
         page = QWidget()
         root = QHBoxLayout(page)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(14)
+        root.setSpacing(10 if self.embedded else 14)
 
         self.controls_card = SectionCard(self._theme_name, accent="sage")
         self.latency_label = QLabel()
@@ -426,6 +491,24 @@ class ServerWindow(QMainWindow):
         self.loss_spin.setSingleStep(1.0)
         self.loss_spin.setSuffix(" %")
         self.controls_card.content_layout.addWidget(self.loss_spin)
+
+        # Teacher Broadcast Announcement
+        self.controls_card.content_layout.addSpacing(12)
+        self.broadcast_label = QLabel()
+        self.broadcast_label.setStyleSheet("font-size: 13px; font-weight: 600;")
+        self.controls_card.content_layout.addWidget(self.broadcast_label)
+
+        self.broadcast_input = MintTextInput(self._theme_name)
+        self.broadcast_input.setMinimumHeight(34)
+        self.controls_card.content_layout.addWidget(self.broadcast_input)
+
+        self.broadcast_btn = MintButton("", self._theme_name)
+        self.broadcast_btn.setObjectName("primaryButton")
+        self.broadcast_btn.setIcon(get_icon("terminal", icon_color(self._theme_name, "on-accent")))
+        self.broadcast_btn.setIconSize(_ICON_SIZE)
+        self.broadcast_btn.setMinimumHeight(34)
+        self.controls_card.content_layout.addWidget(self.broadcast_btn)
+
         self.controls_card.content_layout.addStretch()
 
         root.addWidget(self.controls_card, 1)
@@ -448,23 +531,6 @@ class ServerWindow(QMainWindow):
 
         self._socket_states: dict[str, str] = {}
 
-        self.stats_container = QWidget()
-        self.stats_layout = QHBoxLayout(self.stats_container)
-        self.stats_layout.setContentsMargins(0, 0, 0, 0)
-        self.stats_layout.setSpacing(16)
-
-        self.tile_tx = StatTile("server.stat_tx", self.locale, self._theme_name)
-        self.tile_rx = StatTile("server.stat_rx", self.locale, self._theme_name)
-        self.tile_conn = StatTile("server.stat_connections", self.locale, self._theme_name)
-        self.tile_pkts = StatTile("server.stat_packets", self.locale, self._theme_name)
-
-        self.stats_layout.addWidget(self.tile_tx)
-        self.stats_layout.addWidget(self.tile_rx)
-        self.stats_layout.addWidget(self.tile_conn)
-        self.stats_layout.addWidget(self.tile_pkts)
-
-        self.states_card.content_layout.addWidget(self.stats_container)
-
         root.addWidget(self.states_card, 1)
         return page
 
@@ -480,6 +546,9 @@ class ServerWindow(QMainWindow):
         self.server_toggle_btn.toggled.connect(self._on_server_toggled)
         self.add_user_btn.clicked.connect(self._add_user)
         self.remove_user_btn.clicked.connect(self._remove_user)
+        self.import_csv_btn.clicked.connect(self._on_import_csv)
+        self.broadcast_btn.clicked.connect(self._on_send_broadcast)
+        self.broadcast_input.returnPressed.connect(self._on_send_broadcast)
         self.log_clear_btn.clicked.connect(self.log_text.clear)
         self.log_copy_btn.clicked.connect(self._copy_logs)
 
@@ -548,17 +617,28 @@ class ServerWindow(QMainWindow):
         self.setWindowTitle(t("server.title"))
         self.host_label.setText(t("server.bind_address"))
         self.port_label.setText(t("client.port"))
+        self.tls_checkbox.setText(t("server.enable_tls"))
+        self.tls_checkbox.setToolTip(t("tooltip.enable_tls"))
         self.host_input.setAccessibleName(t("a11y.bind_address"))
         self.port_input.setAccessibleName(t("a11y.bind_port"))
         self.server_toggle_btn.setText(
             t("server.stop_btn") if self.server_toggle_btn.isChecked() else t("server.start_btn")
         )
+        self.server_toggle_btn.setToolTip(
+            t("tooltip.stop_server") if self.server_toggle_btn.isChecked() else t("tooltip.start_server")
+        )
+        self.log_clear_btn.setToolTip(t("tooltip.log_clear"))
+        self.log_copy_btn.setToolTip(t("tooltip.log_copy"))
         self.log_text.setPlaceholderText(t("server.logs_placeholder"))
         self.log_card.set_title(t("server.logs"))
         self.clients_card.set_title(t("server.connections"))
         self.users_card.set_title(t("server.user_management"))
         self.add_user_btn.setText(t("server.add_user"))
+        self.add_user_btn.setToolTip(t("tooltip.add_user"))
         self.remove_user_btn.setText(t("server.remove_user"))
+        self.remove_user_btn.setToolTip(t("tooltip.remove_user"))
+        self.import_csv_btn.setText(t("server.import_csv_btn"))
+        self.import_csv_btn.setToolTip(t("tooltip.import_csv"))
         self.user_field_label.setText(t("client.username"))
         self.pass_field_label.setText(t("client.password"))
         self.new_user_input.setPlaceholderText(t("server.username_placeholder"))
@@ -570,7 +650,13 @@ class ServerWindow(QMainWindow):
         self.rail.back_btn.setText(t("common.back"))
         self.controls_card.set_title(t("server.teacher_controls"))
         self.latency_label.setText(t("server.simulate_latency"))
+        self.latency_spin.setToolTip(t("tooltip.simulate_latency"))
         self.loss_label.setText(t("server.simulate_packet_loss"))
+        self.loss_spin.setToolTip(t("tooltip.simulate_packet_loss"))
+        self.broadcast_label.setText(t("server.broadcast_title"))
+        self.broadcast_input.setPlaceholderText(t("server.broadcast_placeholder"))
+        self.broadcast_btn.setText(t("server.broadcast_btn"))
+        self.broadcast_btn.setToolTip(t("tooltip.broadcast_msg"))
         self.states_card.set_title(t("server.socket_states"))
 
         self.clients_empty.set_message(t("server.empty_clients"))
@@ -586,9 +672,7 @@ class ServerWindow(QMainWindow):
         self.file_menu.setTitle(t("menu.file"))
         self.view_menu.setTitle(t("menu.view"))
         self.help_menu.setTitle(t("menu.help"))
-        self.action_start.setText(
-            t("server.stop_btn") if self.server_toggle_btn.isChecked() else t("server.start_btn")
-        )
+        self.action_start.setText(t("server.stop_btn") if self.server_toggle_btn.isChecked() else t("server.start_btn"))
         self.action_close.setText(t("common.close"))
         self.action_overview.setText(t("client.nav_overview"))
         self.action_users.setText(t("server.users_list"))
@@ -641,7 +725,9 @@ class ServerWindow(QMainWindow):
 
         self.config.set_nested("server", "host", host)
         self.config.set_nested("server", "port", port)
-        self.backend.start(host, port)
+        enable_tls = self.tls_checkbox.isChecked()
+        self.config.set_nested("server", "enable_tls", enable_tls)
+        self.backend.start(host, port, enable_tls=enable_tls)
 
     def _stop_server(self):
         self.backend.stop()
@@ -650,6 +736,7 @@ class ServerWindow(QMainWindow):
         self.server_toggle_btn.set_checked_silently(True)
         self.host_input.setEnabled(False)
         self.port_input.setEnabled(False)
+        self.tls_checkbox.setEnabled(False)
         t = self.locale.get
         self.server_toggle_btn.setText(t("server.stop_btn"))
         self.action_start.setText(t("server.stop_btn"))
@@ -660,6 +747,7 @@ class ServerWindow(QMainWindow):
         self.server_toggle_btn.set_checked_silently(False)
         self.host_input.setEnabled(True)
         self.port_input.setEnabled(True)
+        self.tls_checkbox.setEnabled(True)
         self.clients_list.clear()
         self.clients_list.setVisible(False)
         self.clients_empty.setVisible(True)
@@ -804,6 +892,77 @@ class ServerWindow(QMainWindow):
             self.auth.remove_user(username)
             self._refresh_user_list()
             self._append_log(t("server.user_removed", username=username))
+
+    def _on_import_csv(self):
+        """Batch imports student accounts from a selected CSV file."""
+        import csv
+        from PyQt6.QtWidgets import QFileDialog
+
+        t = self.locale.get
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            t("server.import_csv_title"),
+            "",
+            "CSV Files (*.csv);;All Files (*)",
+        )
+        if not file_path:
+            return
+
+        imported = 0
+        skipped = 0
+        try:
+            with open(file_path, "r", encoding="utf-8") as fh:
+                reader = csv.reader(fh)
+                for row in reader:
+                    if not row or len(row) < 2:
+                        continue
+                    u = row[0].strip()
+                    p = row[1].strip()
+                    if u.lower() in ("username", "user", "usuario") and p.lower() in (
+                        "password",
+                        "pass",
+                        "contraseña",
+                    ):
+                        continue
+                    if not u or not p:
+                        skipped += 1
+                        continue
+                    if self.auth.add_user(u, p):
+                        imported += 1
+                    else:
+                        skipped += 1
+
+            self._refresh_user_list()
+            MintDialog.message(
+                self,
+                self._theme_name,
+                t("server.import_csv_title"),
+                t("server.import_csv_success", count=imported, skipped=skipped),
+            )
+            self._append_log(f"[Teacher Mode] CSV imported: {imported} added, {skipped} skipped.")
+        except Exception as exc:
+            MintDialog.message(
+                self,
+                self._theme_name,
+                t("server.import_csv_title"),
+                t("server.import_csv_error", error=str(exc)),
+            )
+
+    def _on_send_broadcast(self):
+        """Dispatches an announcement message to all active client connections."""
+        msg = self.broadcast_input.text().strip()
+        if not msg:
+            return
+
+        t = self.locale.get
+        count = self.backend.broadcast_message(msg)
+        self.broadcast_input.clear()
+
+        if count > 0:
+            status_text = t("server.broadcast_sent", count=count)
+        else:
+            status_text = t("server.broadcast_no_clients")
+        self.status_bar.showMessage(status_text, 4000)
 
     def _show_clients_context_menu(self, position):
         item = self.clients_list.itemAt(position)

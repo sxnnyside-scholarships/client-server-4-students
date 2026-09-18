@@ -61,6 +61,7 @@ class ClientBackend(QObject):
     capabilities_discovered = pyqtSignal(list)
     action_completed = pyqtSignal(str)
     rtt_measured = pyqtSignal(float)
+    broadcast_received = pyqtSignal(str)
 
     # Educational Signals
     packet_tx = pyqtSignal(str)
@@ -87,6 +88,7 @@ class ClientBackend(QObject):
         self.engine.on_connection_recovering = self.connection_recovering.emit
         self.engine.on_status_message = self.status_message.emit
         self.engine.on_capabilities_discovered = self.capabilities_discovered.emit
+        self.engine.on_broadcast_received = self.broadcast_received.emit
         self.engine.on_packet_tx = self.packet_tx.emit
         self.engine.on_packet_rx = self.packet_rx.emit
 
@@ -145,7 +147,27 @@ class ClientBackend(QObject):
 
     # ── Connection Management ──
 
-    def connect_to_server(self, host: str, port: int, user: str, pwd: str):
+    @property
+    def enable_tls(self) -> bool:
+        """
+        Indicates whether client connections will be wrapped in TLS.
+
+        Returns:
+            bool: True if TLS encryption is enabled, False otherwise.
+        """
+        return getattr(self.engine, "enable_tls", False)
+
+    @enable_tls.setter
+    def enable_tls(self, val: bool):
+        """
+        Enables or disables TLS wrapping for client connections.
+
+        Args:
+            val (bool): True to enable TLS, False for plaintext.
+        """
+        self.engine.enable_tls = val
+
+    def connect_to_server(self, host: str, port: int, user: str, pwd: str, enable_tls: bool | None = None):
         """
         Initiates a background connection and authentication sequence.
 
@@ -154,6 +176,7 @@ class ClientBackend(QObject):
             port: The TCP port (usually 2121).
             user: The account username.
             pwd: The plaintext password.
+            enable_tls: Optional flag to toggle TLS encryption for this connection.
 
         Returns:
             None. (Asynchronous operation).
@@ -165,6 +188,8 @@ class ClientBackend(QObject):
         Failure Behavior:
             Emits `error_occurred` if the socket cannot be opened.
         """
+        if enable_tls is not None:
+            self.engine.enable_tls = enable_tls
         self.engine.connect(host, port, user, pwd)
 
     def disconnect(self):

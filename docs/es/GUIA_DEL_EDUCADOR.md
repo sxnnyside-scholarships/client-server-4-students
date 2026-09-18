@@ -28,9 +28,9 @@ CS4S crea automáticamente un directorio "sandbox" separado para cada usuario au
 
 ### Laboratorio B: Contraste con Seguridad de Capa de Transporte (TLS)
 **Objetivo:** Demostrar la opacidad de los túneles de transporte cifrados.
-1. Habilite TLS en el panel de Configuración del servidor (requiere reiniciar el servidor).
-2. Pida a los estudiantes que se vuelvan a conectar.
-3. Cuando abran el Inspector de Protocolo, todos los datos de la aplicación (como el comando `AUTH`) se representarán como `[Registro TLS Cifrado]`.
+1. Marque la casilla **Habilitar TLS** en los paneles de conexión del Servidor y del Cliente (el servidor genera automáticamente certificados autofirmados efímeros en `~/.cs4s/certs/`).
+2. Reconecte al cliente.
+3. Cuando los estudiantes abran el Inspector de Protocolo, todos los datos de la aplicación (como el comando `AUTH`) se representarán como `[Registro TLS Cifrado: X bytes]`.
 4. **Punto de Discusión:** Discuta cómo la conexión TCP subyacente sigue siendo idéntica, pero los analizadores de paquetes (como Wireshark) ya no pueden analizar la capa de aplicación.
 
 ### Laboratorio C: Ciclos de Vida del Estado del Socket
@@ -39,5 +39,8 @@ CS4S crea automáticamente un directorio "sandbox" separado para cada usuario au
 2. Use el monitor de conexión del Servidor para observar cómo el socket del cliente pasa de `IDLE` a `TRANSFERRING`.
 3. Desconecte al cliente a mitad de la transferencia para observar el manejo de excepciones y las rutinas de limpieza del servidor.
 
-## 3. Secuenciación del Currículo
+## 3. Modo de Proyección en Aula y Autoestudio
+Para proyectar en la pantalla del aula o para tareas individuales donde el estudiante cuenta con una sola computadora, inicie CS4S usando la tarjeta **Sandbox Interactivo** desde la pantalla inicial. Esta vista divide la pantalla alojando el Servidor y el Cliente lado a lado con auto-conexión por loopback (`127.0.0.1:4500`), permitiendo observar causa y efecto de los controles de caos y el cifrado en tiempo real sin alternar entre ventanas.
+
+## 4. Secuenciación del Currículo
 Recomendamos introducir CS4S después de enseñar el modelo OSI y los fundamentos básicos de TCP/UDP, pero *antes* de enseñar HTTP. CS4S proporciona un trampolín más simple hacia los protocolos de la capa de aplicación debido a que su estructura de comandos es significativamente menos verbosa que los encabezados HTTP.

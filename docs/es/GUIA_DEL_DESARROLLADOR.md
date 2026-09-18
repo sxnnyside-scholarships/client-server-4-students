@@ -15,31 +15,34 @@ CS4S separa las responsabilidades claramente en módulos distintos:
 
 ## 2. Flujo de Trabajo de Ingeniería
 
-Usamos **Poetry** para mantener entornos deterministas.
+Usamos **uv** para la gestión rápida y determinista de dependencias y **just** como ejecutor de tareas estándar.
 
 ### Configuración del Entorno
 ```bash
-# Instalar dependencias
-poetry install
+# Instalar dependencias, entorno virtual y hooks de git
+just install
 
 # Ejecutar la aplicación
-poetry run python main.py
+just dev
 ```
 
-### Análisis Estático
-Antes de enviar una solicitud de extracción (pull request), asegúrese de que el código base pase nuestros controles de calidad automatizados:
+### Análisis Estático y Control de Calidad
+Antes de enviar una solicitud de extracción (pull request), asegúrese de que el código base pase nuestras compuertas de calidad automatizadas:
 ```bash
-# Formateo y Linting (Ruff)
-poetry run ruff check .
+# Ejecutar la compuerta de calidad completa (formato, lint, tipos, pruebas)
+just check
 
-# Verificación de Tipos (MyPy)
-poetry run mypy src/ tests/
+# O verificaciones individuales:
+just format     # Formateo con Ruff
+just lint       # Linting con Ruff
+just typecheck  # Verificación de tipos con MyPy
+just test       # Pruebas automatizadas con PyTest
 ```
 
 ### Pruebas
 Aplicamos pruebas sin estado. No confíe en rutas fijas o acceso a redes externas.
 ```bash
-poetry run pytest tests/
+just test
 ```
 
 - Las **pruebas unitarias** validan la lógica de forma aislada (p. ej., `test_auth.py`).
@@ -61,6 +64,6 @@ CS4S incluye un robusto script de distribución que utiliza PyInstaller para emp
 
 ```bash
 # Generar ejecutable nativo
-poetry run python scripts/build_dist.py
+just build
 ```
 Esto genera una aplicación portable en el directorio `dist/` adecuada para Windows, macOS o Linux, según el sistema operativo anfitrión.

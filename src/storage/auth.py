@@ -170,6 +170,24 @@ class AuthManager:
         self._save()
         return True
 
+    def set_password(self, username: str, password: str) -> bool:
+        """
+        Sets or updates the password for a user account, creating it if it does not exist.
+
+        Args:
+            username: The account username.
+            password: The plaintext password.
+
+        Returns:
+            True if updated/created, False if the username is invalid.
+        """
+        if not is_valid_username(username):
+            return False
+        digest, salt = self._hash_password(password)
+        self.users[username] = {"hash": digest, "salt": salt}
+        self._save()
+        return True
+
     def remove_user(self, username: str) -> bool:
         """
         Deletes a user account from the registry.

@@ -160,13 +160,14 @@ class NavRail(QWidget):
         self._seam_soft = QColor(soft)
         self._seam_deep = QColor(deep)
 
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(18, 20, 15, 16)
-        outer.setSpacing(18)
+        self._outer_layout = QVBoxLayout(self)
+        self._outer_layout.setContentsMargins(18, 20, 15, 16)
+        self._outer_layout.setSpacing(18)
 
         # ── brand mark: just the text and the gradient seam ────
-        brand_row = QHBoxLayout()
-        brand_row.setContentsMargins(12, 16, 12, 24)
+        self._brand_widget = QWidget()
+        brand_row = QHBoxLayout(self._brand_widget)
+        brand_row.setContentsMargins(12, 8, 12, 12)
         brand_row.setSpacing(12)
 
         self._logo_icon = QLabel()
@@ -187,38 +188,60 @@ class NavRail(QWidget):
         """)
         brand_row.addWidget(self._wordmark)
         brand_row.addStretch()
-        outer.addLayout(brand_row)
+        self._outer_layout.addWidget(self._brand_widget)
 
         # ── live status ──────────────────────────────────────
         self.status_badge = StatusBadge(theme_name)
-        outer.addWidget(self.status_badge)
+        self._outer_layout.addWidget(self.status_badge)
 
         self.form_layout = QVBoxLayout()
         self.form_layout.setSpacing(16)
-        outer.addLayout(self.form_layout)
+        self._outer_layout.addLayout(self.form_layout)
 
         # ── mode switch ───────────────────────────────────────
         self._nav_label = QLabel()
         self._nav_label.setObjectName("navSectionLabel")
-        outer.addWidget(self._nav_label)
+        self._outer_layout.addWidget(self._nav_label)
 
         self.nav_layout = QVBoxLayout()
         self.nav_layout.setSpacing(2)
-        outer.addLayout(self.nav_layout)
+        self._outer_layout.addLayout(self.nav_layout)
         self._nav_group = QButtonGroup(self)
         self._mode_buttons: dict[str, _NavItemButton] = {}
         self._nav_group.setExclusive(True)
 
-        outer.addStretch(1)
+        self._outer_layout.addStretch(1)
 
         self.back_btn = MintButton("", theme_name)
         self.back_btn.setObjectName("secondaryButton")
         self.back_btn.setIcon(get_icon("arrow-left", icon_color(theme_name)))
         self.back_btn.clicked.connect(self.back_requested.emit)
-        outer.addWidget(self.back_btn)
+        self._outer_layout.addWidget(self.back_btn)
 
         self.footer = BrandingFooter()
-        outer.addWidget(self.footer)
+        self._outer_layout.addWidget(self.footer)
+
+    def set_compact(self, compact: bool):
+        """
+        Toggles compact mode for embedded / dual-pane layouts.
+        Reduces rail width, hides redundant brand/back chrome, and tightens layout margins.
+        """
+        if compact:
+            self.setFixedWidth(185)
+            self._outer_layout.setContentsMargins(10, 10, 10, 10)
+            self._outer_layout.setSpacing(10)
+            self.form_layout.setSpacing(10)
+            self._brand_widget.setVisible(False)
+            self.back_btn.setVisible(False)
+            self.footer.setVisible(False)
+        else:
+            self.setFixedWidth(RAIL_WIDTH)
+            self._outer_layout.setContentsMargins(18, 20, 15, 16)
+            self._outer_layout.setSpacing(18)
+            self.form_layout.setSpacing(16)
+            self._brand_widget.setVisible(True)
+            self.back_btn.setVisible(True)
+            self.footer.setVisible(True)
 
     def set_nav_section_label(self, text: str):
         self._nav_label.setText(text.upper())

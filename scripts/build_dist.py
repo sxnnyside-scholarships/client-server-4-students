@@ -69,7 +69,7 @@ def main():
         print(f"\nBuild failed with exit code {e.returncode}")
         sys.exit(1)
     except FileNotFoundError:
-        print("\nError: 'pyinstaller' not found. Ensure it is installed via Poetry.")
+        print("\nError: 'pyinstaller' not found. Ensure it is installed via `just install`.")
         sys.exit(1)
 
 

@@ -28,7 +28,11 @@ Thumbs.db
 *.swo
 *~
 
-# ── DXQE Caches ──────────────────────────────────────
+# ── Tooling Caches ───────────────────────────────────
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+*.spec
+
+# Animoria cache & staged cleanup
+.animoria/

@@ -1,6 +1,6 @@
 # Client-Server 4 Students
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue)
+![Version](https://img.shields.io/badge/version-2.1.0-blue)
 ![License](https://img.shields.io/badge/License-GPLv3-green)
 [![CI](https://github.com/sxnnyside-scholarships/client-server-4-students/workflows/CI/badge.svg)](https://github.com/sxnnyside-scholarships/client-server-4-students/actions)
 
@@ -24,9 +24,9 @@
 
 **Client-Server 4 Students** is an educational networking laboratory.
 
-Students often struggle to visualize socket programming and network protocols. CS4S provides a ready-to-use, sandbox environment where students can connect, transfer files, and inspect raw protocol traffic without needing complex infrastructure.
+Students often struggle to visualize socket programming and network protocols. CS4S provides a ready-to-use sandbox environment where students can connect, transfer files, and inspect raw protocol traffic without needing complex infrastructure.
 
-It combines a Python/PyQt6 server and client into a single executable, featuring a built-in packet inspector and latency simulation for real-world testing.
+It combines a Python/PyQt6 server and client into a single executable, featuring a built-in packet inspector, ladder sequence diagram, guided missions, Wireshark PCAP exporter, educational UDP testbench, and latency/packet loss simulation for real-world testing.
 
 ### Philosophy
 
@@ -36,16 +36,21 @@ This is a Sxnnyside Scholarships project, built specifically for educational env
 
 ## Features
 
-- **Single Executable**: Both Client and Server modes run from the same application.
-- **Protocol Inspector**: Real-time traffic visualization for teaching socket communication.
-- **Network Simulation**: Built-in latency and packet loss simulation for testing edge cases.
-- **Sandboxed Storage**: File transfers are strictly isolated to temporary directories to prevent host system modification.
+- **Single Executable & Sandbox**: Run Client and Server modes independently, or together in an integrated Dual-Pane Split-Screen Sandbox with instant loopback Quick Connect.
+- **Protocol Inspector**: Real-time traffic visualization showing raw ASCII frames, keepalive filtering, and command explanations.
+- **Interactive Sequence Diagram**: Visual ladder diagram illustrating client-server lifelines, message deltas, and live RTT latency readouts.
+- **Guided Lab Challenges**: In-app mini-missions automatically verifying handshake, authentication, 400 Bad Request injection, 403 path traversal defense, and 429 rate limiting.
+- **Wireshark PCAP Exporter**: Export captured traffic as standard `.pcap` files for deep frame inspection in classroom networking tools.
+- **UDP vs TCP Comparative Lab**: Educational testbench demonstrating stateless best-effort datagram bursts versus reliable ordered streams with interactive packet loss visualization.
+- **Transport Security (TLS)**: GUI toggle for Transport Layer Security with built-in ephemeral X.509 certificate generation.
+- **Teacher Tools**: Classroom broadcast messaging to all connected terminals, batch CSV student account import, and simulated network impairment (latency and loss).
 
 ## Installation
 
 ### Prerequisites
 
-None! The application is distributed as a standalone portable executable.
+- Python (>= 3.11, < 3.16)
+- uv (>= 0.6.0)
 
 ### From Source
 
@@ -53,8 +58,8 @@ None! The application is distributed as a standalone portable executable.
 git clone https://github.com/sxnnyside-scholarships/client-server-4-students.git
 cd client-server-4-students
 
-# Install dependencies using Poetry
-poetry install
+# Bootstrap dependencies, virtual environment, and git hooks
+just install
 
 # Run the development environment
 just dev
@@ -63,10 +68,13 @@ just dev
 ## Usage
 
 ```bash
-# To run the pre-built application:
-./CS4S
+# Run the development application:
+just dev
 
-# Select either 'Client' or 'Server' from the launcher screen.
+# Or directly via uv:
+uv run python main.py
+
+# Select 'Sandbox (Self-Study)', 'Client', or 'Server' from the launcher screen.
 ```
 
 ## Architecture
@@ -74,7 +82,7 @@ just dev
 ```
 client-server-4-students/
 ├── src/ui/         # Qt6 Presentation Layer (Views only, zero business logic)
-├── src/network/    # Core networking, TCP sockets, and threading handlers
+├── src/network/    # Core networking, TCP/UDP sockets, TLS, and threading handlers
 └── src/storage/    # Sandboxed file manager and auth registry
 ```
 

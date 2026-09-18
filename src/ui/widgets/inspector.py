@@ -24,16 +24,19 @@ from datetime import datetime
 from PyQt6.QtCore import QSize, pyqtSignal
 from PyQt6.QtGui import QColor, QTextCursor, QTextCharFormat
 from PyQt6.QtWidgets import (
+    QFileDialog,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
+from src.core.pcap_util import PCAPExporter
 from src.ui.widgets.atoms import MintTextInput, MintButton, MintIconButton, MintCheckbox, EmptyStateWidget
 from src.ui.icons.icon_provider import get_icon
-from src.ui.themes.tokens import console_colors
+from src.ui.themes.tokens import console_colors, icon_color
 
 
 class ProtocolInspectorWidget(QWidget):
@@ -83,6 +86,7 @@ class ProtocolInspectorWidget(QWidget):
         self._log_entries = []
         self._is_paused = False
         self._show_ping = False
+        self.pcap_exporter = PCAPExporter()
         self._build_ui()
         self._wire_signals()
         self.retranslate()
@@ -107,9 +111,14 @@ class ProtocolInspectorWidget(QWidget):
         self.ping_check = MintCheckbox("", self._theme_name)
         self.ping_check.setChecked(False)
 
+        self.export_pcap_btn = MintButton("", self._theme_name)
+        self.export_pcap_btn.setIcon(get_icon("download", icon_color(self._theme_name)))
+        self.export_pcap_btn.setIconSize(QSize(16, 16))
+
         header_row.addWidget(self.pause_btn)
         header_row.addWidget(self.clear_btn)
         header_row.addWidget(self.ping_check)
+        header_row.addWidget(self.export_pcap_btn)
         header_row.addStretch()
 
         self.rtt_label = QLabel()
@@ -160,6 +169,7 @@ class ProtocolInspectorWidget(QWidget):
         self.pause_btn.clicked.connect(self._on_pause)
         self.clear_btn.clicked.connect(self._on_clear)
         self.ping_check.toggled.connect(self._on_ping_toggled)
+        self.export_pcap_btn.clicked.connect(self._on_export_pcap)
 
     def retranslate(self):
         """
@@ -187,7 +197,10 @@ class ProtocolInspectorWidget(QWidget):
         self.console.setToolTip(self._t("tooltip.protocol_console"))
         self.pause_btn.setToolTip(self._t("tooltip.inspector_pause"))
         self.clear_btn.setToolTip(self._t("tooltip.inspector_clear"))
-        self.ping_check.setText(self._t("tooltip.inspector_show_ping"))
+        self.ping_check.setText(self._t("inspector.show_ping"))
+        self.ping_check.setToolTip(self._t("tooltip.inspector_show_ping"))
+        self.export_pcap_btn.setText(self._t("pcap.export_btn"))
+        self.export_pcap_btn.setToolTip(self._t("pcap.export_tooltip"))
         self.empty_state.set_message(self._t("inspector.empty_console"))
 
     def set_rtt(self, rtt_ms: float):
@@ -215,6 +228,7 @@ class ProtocolInspectorWidget(QWidget):
         self._add_log_entry("rx", packet)
 
     def _add_log_entry(self, direction: str, packet: str):
+        self.pcap_exporter.record_packet(direction, packet)
         now = datetime.now().strftime("%H:%M:%S.%f")[:-3]
         self._log_entries.append((direction, packet, now))
         if len(self._log_entries) > 2000:
@@ -309,3 +323,27 @@ class ProtocolInspectorWidget(QWidget):
                 self.explanation_label.setText(self._t("inspector.proto_explain_unknown"))
         else:
             self.explanation_label.setText(self._t("inspector.proto_explain_hint_default"))
+
+    def _on_export_pcap(self):
+        if self.pcap_exporter.packet_count == 0:
+            QMessageBox.information(self, self._t("pcap.export_btn"), self._t("pcap.export_empty"))
+            return
+
+        now_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_filename = f"cs4s_traffic_{now_str}.pcap"
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            self._t("pcap.file_dialog_title"),
+            default_filename,
+            "Wireshark Capture (*.pcap);;All Files (*)",
+        )
+        if path:
+            try:
+                count = self.pcap_exporter.export_to_file(path)
+                QMessageBox.information(
+                    self,
+                    self._t("pcap.export_btn"),
+                    self._t("pcap.export_success", count=count, path=path),
+                )
+            except Exception as exc:
+                QMessageBox.warning(self, "Error", str(exc))

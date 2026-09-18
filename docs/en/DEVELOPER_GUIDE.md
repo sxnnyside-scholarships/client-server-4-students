@@ -15,31 +15,39 @@ CS4S separates concerns clearly into distinct modules:
 
 ## 2. Engineering Workflow
 
-We use **Poetry** to maintain deterministic environments.
+We use **uv** for fast, deterministic dependency management and **just** as the standard task runner.
 
 ### Environment Setup
-```bash
-# Install dependencies
-poetry install
 
-# Run the application
-poetry run python main.py
+```bash
+# Bootstrap dependencies, virtual environment, and git hooks
+just install
+
+# Run the application locally
+just dev
 ```
 
-### Static Analysis
-Before submitting a pull request, ensure the codebase passes our automated quality checks:
-```bash
-# Code Formatting & Linting (Ruff)
-poetry run ruff check .
+### Static Analysis & Quality Gate
 
-# Type Checking (MyPy)
-poetry run mypy src/ tests/
+Before submitting a pull request, ensure the codebase passes our automated quality gates:
+
+```bash
+# Run the complete quality gate (format, lint, typecheck, test)
+just check
+
+# Or individual checks:
+just format     # Format code via Ruff
+just lint       # Lint code via Ruff
+just typecheck  # Type check via MyPy
+just test       # Run tests via PyTest
 ```
 
 ### Testing
+
 We enforce stateless testing. Do not rely on hardcoded paths or external network access.
+
 ```bash
-poetry run pytest tests/
+just test
 ```
 
 - **Unit tests** validate logic in isolation (e.g., `test_auth.py`).
@@ -61,6 +69,7 @@ CS4S includes a robust distribution script utilizing PyInstaller to bundle PyQt6
 
 ```bash
 # Generate native executable
-poetry run python scripts/build_dist.py
+just build
 ```
+
 This generates a portable application in the `dist/` directory suitable for Windows, macOS, or Linux depending on the host OS.

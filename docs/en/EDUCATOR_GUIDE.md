@@ -13,7 +13,7 @@ CS4S works entirely over Local Area Networks (LAN) and local loopback (127.0.0.1
 4. Distribute this IP and Port to your students.
 
 ### Managing Student Sandboxes
-CS4S automatically creates a separate "sandbox" directory for each authenticated user inside the `~/.cs4s/sandbox/` folder on the host server. 
+CS4S automatically creates a separate "sandbox" directory for each authenticated user inside the `~/.cs4s/sandbox/` folder on the host server.
 - Students cannot escape this sandbox.
 - You can pre-seed these directories with files (e.g., assignment templates or packet captures) before the lab begins.
 
@@ -28,9 +28,9 @@ CS4S automatically creates a separate "sandbox" directory for each authenticated
 
 ### Lab B: Transport Layer Security (TLS) Contrast
 **Objective:** Demonstrate the opacity of encrypted transport tunnels.
-1. Enable TLS in the server's Settings panel (requires restarting the server listener).
-2. Have students reconnect.
-3. When they open the Protocol Inspector, all application data (like the `AUTH` command) will be represented as `[Encrypted TLS Record]`.
+1. Check the **Enable TLS** checkbox on both the Server and Client connection panels (the server automatically generates ephemeral self-signed certificates in `~/.cs4s/certs/`).
+2. Reconnect the client.
+3. When students open the Protocol Inspector, all application data (like the `AUTH` command) will be represented as `[Encrypted TLS Record: X bytes]`.
 4. **Discussion Point:** Discuss how the underlying TCP connection remains identical, but packet-sniffers (like Wireshark) can no longer parse the application layer.
 
 ### Lab C: Socket State Lifecycles
@@ -39,5 +39,8 @@ CS4S automatically creates a separate "sandbox" directory for each authenticated
 2. Use the Server's connection monitor to watch the client socket transition from `IDLE` to `TRANSFERRING`.
 3. Disconnect the client mid-transfer to observe the server's exception handling and cleanup routines.
 
-## 3. Curriculum Sequencing
+## 3. Classroom Projection & Self-Study Mode
+When projecting to a classroom screen or assigning homework to students working on a single computer, launch CS4S using the **Interactive Sandbox** card from the start screen. It renders the Server and Client side-by-side with a single-click loopback auto-connection (`127.0.0.1:4500`), allowing students to see the cause and effect of chaos controls and encryption in real time without window switching.
+
+## 4. Curriculum Sequencing
 We recommend introducing CS4S after teaching the OSI model and basic TCP/UDP fundamentals, but *before* teaching HTTP. CS4S provides a simpler stepping stone to application-layer protocols because its command structure is significantly less verbose than HTTP headers.

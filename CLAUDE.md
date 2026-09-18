@@ -7,11 +7,13 @@ This file provides system instructions for AI coding assistants (like Claude, Ch
 - **MVC Enforced:** `src/ui/` files must contain ZERO business logic. They are "Views" and must delegate all socket/network logic to the `ClientBackend` or `ServerBackend`.
 - **Thread Safety:** The GUI runs on the Qt Main Thread. Network loops run on daemon background threads. You MUST use PyQt signals/slots to bridge data across these threads to prevent freezing the UI.
 
-## 2. Technical Stack (DXQE v2 Canonical)
+## 2. Repository Topology & Technical Stack
+- **Topology:** Monolithic (standalone single-application desktop package).
 - **Python:** strictly `>=3.11, <3.16` (to maintain PyInstaller compatibility).
 - **GUI:** `PyQt6` ONLY. Do not use PySide6 or Tkinter.
-- **Dependency Management:** Managed strictly via `Poetry` (`pyproject.toml`). Do not run raw `pip install`.
-- **Task Runner:** `just` (use `just build`, `just check`, `just test`, etc.)
+- **Dependency Management:** Managed strictly via `uv` (`pyproject.toml`, `uv.lock`). Do not run raw `pip install`.
+- **Task Runner:** `just` (use `just dev`, `just build`, `just check`, `just test`, etc.).
+- **Code Quality:** Formatted and linted via `ruff`, type-checked via `mypy`, tested via `pytest`.
 
 ## 3. Design System (MintPy)
 - All UI modifications must use the foundational `MintPy` widgets located in `src/ui/widgets/atoms.py` (e.g., `MintButton`, `MintTextInput`).

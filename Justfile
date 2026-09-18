@@ -5,35 +5,36 @@
 default:
     @just --list
 
-# Install all dependencies (production + dev)
+# Install all dependencies and setup git hooks
 install:
-    .venv/bin/poetry install
+    uv sync --all-groups
+    uv run pre-commit install
 
 # Run the application locally
 dev:
-    .venv/bin/python main.py
+    uv run python main.py
 
 # Build a portable distribution package via PyInstaller
 build:
-    .venv/bin/python scripts/build_dist.py
+    uv run python scripts/build_dist.py
 
 # Run all automated tests
 test:
-    .venv/bin/pytest tests/ -v
+    uv run pytest tests/ -v
 
 # Run static type checking
 typecheck:
-    .venv/bin/mypy src/ tests/
+    uv run mypy src/ tests/
 
 # Run the code linter
 lint:
-    .venv/bin/ruff check .
+    uv run ruff check .
 
 # Format the codebase
 format:
-    .venv/bin/ruff format .
+    uv run ruff format .
 
-# Run the complete CI/CD equivalent check suite
+# Run the complete quality gate
 check: format lint typecheck test
     @echo "All engineering gates passed!"
 

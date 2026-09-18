@@ -75,6 +75,7 @@ class ClientConnectionEngine:
         self.on_connection_recovering: Callable[[int, int], None] = lambda x, y: None
         self.on_status_message: Callable[[str], None] = lambda x: None
         self.on_capabilities_discovered: Callable[[list], None] = lambda x: None
+        self.on_broadcast_received: Callable[[str], None] = lambda x: None
 
         self.on_packet_tx: Callable[[str], None] = lambda x: None
         self.on_packet_rx: Callable[[str], None] = lambda x: None
@@ -183,7 +184,12 @@ class ClientConnectionEngine:
                     sock = context.wrap_socket(sock, server_hostname=host)
 
                 self._socket = sock
-                self._proto = ProtocolHandler(sock, on_tx=self.on_packet_tx, on_rx=self.on_packet_rx)
+                self._proto = ProtocolHandler(
+                    sock,
+                    on_tx=self.on_packet_tx,
+                    on_rx=self.on_packet_rx,
+                    on_broadcast=self.on_broadcast_received,
+                )
                 if self.enable_tls:
                     self._proto.is_tls = True
 
@@ -218,6 +224,7 @@ class ClientConnectionEngine:
                     self.on_connected()
                     self.on_auth_success()
                     self.on_status_message(f"Authenticated as {user}")
+                    self.run_in_background(self._idle_loop)
                     return
                 else:
                     reason = resp[2] if len(resp) > 2 else "Unknown error"
@@ -242,6 +249,47 @@ class ClientConnectionEngine:
                     self.on_error_occurred(err_code, f"Connection failed: {exc}")
                     self._connected = False
                     self.on_disconnected()
+
+    def _idle_loop(self):
+        """
+        Background listener loop that polls the socket for asynchronous server messages
+        (e.g., teacher broadcast announcements) when no active RPC operation is running.
+        """
+        import select
+        import time
+
+        while self._connected and not self._shutdown_event.is_set():
+            # Attempt to acquire lock briefly; if an operation or transfer holds it, yield
+            acquired = self._lock.acquire(timeout=0.08)
+            if not acquired:
+                time.sleep(0.04)
+                continue
+
+            try:
+                if not self._connected or not self._socket or not self._proto or self._shutdown_event.is_set():
+                    break
+
+                has_data = False
+                if hasattr(self._socket, "pending") and self._socket.pending() > 0:
+                    has_data = True
+                elif self._socket.fileno() != -1:
+                    try:
+                        r, _, _ = select.select([self._socket], [], [], 0.05)
+                        has_data = bool(r)
+                    except (ValueError, OSError):
+                        break
+
+                if has_data:
+                    # Reading via ProtocolHandler automatically dispatches on_broadcast_received
+                    self._proto.recv_message()
+            except (ConnectionError, OSError):
+                if self._connected and not self._shutdown_event.is_set():
+                    self.fail_disconnected()
+                break
+            finally:
+                self._lock.release()
+
+            time.sleep(0.08)
 
     def disconnect(self):
         """

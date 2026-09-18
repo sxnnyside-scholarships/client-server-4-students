@@ -72,7 +72,7 @@ class LauncherWindow(QWidget):
         self._theme_name = self.config.get("theme", "mint_light")
         self._child_window = None
 
-        self.setMinimumSize(520, 430)
+        self.setMinimumSize(640, 440)
         self._build_ui()
         self._wire_signals()
         self.retranslate()
@@ -105,8 +105,10 @@ class LauncherWindow(QWidget):
 
         self.client_btn = self._make_mode_card("connect", neutral)
         self.server_btn = self._make_mode_card("server", neutral)
+        self.sandbox_btn = self._make_mode_card("flask", neutral)
         cards_row.addWidget(self.client_btn, 1)
         cards_row.addWidget(self.server_btn, 1)
+        cards_row.addWidget(self.sandbox_btn, 1)
         root.addLayout(cards_row)
 
         root.addStretch()
@@ -181,6 +183,7 @@ class LauncherWindow(QWidget):
     def _wire_signals(self):
         self.client_btn.clicked.connect(self._open_client)
         self.server_btn.clicked.connect(self._open_server)
+        self.sandbox_btn.clicked.connect(self._open_sandbox)
         self.lang_combo.currentIndexChanged.connect(self._on_lang_changed)
         self.theme_combo.currentIndexChanged.connect(self._on_theme_changed)
 
@@ -193,10 +196,13 @@ class LauncherWindow(QWidget):
         self.subtitle_label.setText(t("launcher.welcome"))
         self.client_btn.setText(t("launcher.start_client"))
         self.server_btn.setText(t("launcher.start_server"))
+        self.sandbox_btn.setText(t("launcher.start_sandbox"))
         self.client_btn.set_description(t("launcher.start_client_desc"))
         self.server_btn.set_description(t("launcher.start_server_desc"))
+        self.sandbox_btn.set_description(t("launcher.start_sandbox_desc"))
         self.client_btn.setToolTip(t("tooltip.connect"))
         self.server_btn.setToolTip(t("tooltip.start_server"))
+        self.sandbox_btn.setToolTip(t("tooltip.start_sandbox"))
 
         self.lang_label.setText(t("launcher.language"))
         self.lang_combo.setItemText(1, t("launcher.lang_es"))
@@ -282,6 +288,14 @@ class LauncherWindow(QWidget):
             backend=backend,
             runtime=self.runtime,
         )
+        self._child_window.closed.connect(self._on_child_closed)
+        self._child_window.showMaximized()
+
+    def _open_sandbox(self):
+        from src.ui.sandbox_window import SandboxWindow
+
+        self.hide()
+        self._child_window = SandboxWindow(self.config, self.locale, self.themes, self.app, runtime=self.runtime)
         self._child_window.closed.connect(self._on_child_closed)
         self._child_window.showMaximized()
 

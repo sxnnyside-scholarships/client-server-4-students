@@ -22,7 +22,10 @@ Expected Collaborators:
 import logging
 import socket
 import threading
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
+
+if TYPE_CHECKING:
+    from src.network.server.udp_server import UDPEducatorServer
 
 from src.core.protocol import ProtocolHandler
 from src.network.security import (
@@ -79,6 +82,9 @@ class ServerNetworkEngine:
         # Testing/chaos properties
         self.simulate_latency = 0.0
         self.simulate_packet_loss = 0.0
+
+        # Educational UDP companion server
+        self.udp_server: UDPEducatorServer | None = None
 
     @property
     def is_running(self) -> bool:
@@ -156,6 +162,21 @@ class ServerNetworkEngine:
             self._accept_thread = threading.Thread(target=self._accept_loop, daemon=True)
             self._accept_thread.start()
 
+            # Start educational UDP companion server (port + 1)
+            try:
+                from src.network.server.udp_server import UDPEducatorServer
+
+                self.udp_server = UDPEducatorServer(
+                    host=host,
+                    port=port + 1,
+                    get_latency=lambda: self.simulate_latency,
+                    get_packet_loss=lambda: self.simulate_packet_loss,
+                    on_log=self.on_log_message,
+                )
+                self.udp_server.start()
+            except Exception as exc:
+                self.on_log_message(f"Could not start UDP companion server: {exc}")
+
             msg = f"Server started on {host}:{port}"
             self.on_log_message(msg)
             logger.info(msg)
@@ -209,6 +230,14 @@ class ServerNetworkEngine:
         for t in threads:
             t.join(timeout=0.5)
 
+        # Stop UDP companion server
+        if getattr(self, "udp_server", None):
+            try:
+                self.udp_server.stop()
+            except Exception:
+                pass
+            self.udp_server = None
+
         # Overwrite callbacks to prevent late background threads from calling destroyed Qt/signal targets
         self.on_log_message = lambda x: None
         self.on_client_connected = lambda x: None
@@ -240,6 +269,31 @@ class ServerNetworkEngine:
                 except OSError:
                     pass
                 self.on_log_message(f"[Teacher Mode] Forced disconnect: {addr_str}")
+
+    def broadcast_message(self, message: str) -> int:
+        """
+        Transmits an educational broadcast announcement to all connected clients.
+
+        Args:
+            message: The announcement text to broadcast.
+
+        Returns:
+            int: Number of clients to which the message was successfully dispatched.
+        """
+        with self._lock:
+            clients_snapshot = list(self._clients.values())
+
+        count = 0
+        for _thread, _conn, proto in clients_snapshot:
+            try:
+                proto.send_message("BROADCAST", message)
+                count += 1
+            except (OSError, ConnectionError):
+                pass
+
+        self.on_log_message(f"[Teacher Mode] Broadcast announcement sent to {count} clients: {message}")
+        logger.info("Broadcast sent to %d clients: %s", count, message)
+        return count
 
     def _accept_loop(self):
         while self._running:
