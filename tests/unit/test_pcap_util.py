@@ -1,9 +1,55 @@
+"""
+Module: test_pcap_util.py
+─────────────────────────
+Purpose: Validates synthetic Ethernet II, IPv4, TCP frame construction, RFC 1071 checksum verification,
+and standard Libpcap (.pcap) binary file serialization.
+
+Architectural Role:
+Acts as the verification suite for `src.core.pcap_util`, ensuring that network traffic recorded by the application
+can be exported into valid binary PCAP files inspectable by Wireshark and `tcpdump`.
+
+Responsibilities:
+- Verify mathematical correctness of the one's complement Internet Checksum algorithm (RFC 1071).
+- Verify standard 24-byte Libpcap global file header generation (magic number, major/minor version, snaplen).
+- Validate synthesis of layered network protocol headers (Ethernet II, IPv4 header, TCP header) and payloads.
+- Verify packet counting, file writing, and buffer clearing behavior.
+
+Dependencies:
+- `struct`
+- `pathlib.Path`
+- `src.core.pcap_util.PCAPExporter`
+- `src.core.pcap_util.compute_internet_checksum`
+
+Expected Collaborators:
+- `tmp_path`: Pytest fixture providing clean temporary directory storage.
+
+Educational Note: Binary Frame Construction
+Building raw PCAP files in pure Python without external C libraries (like libpcap or scapy) allows students
+to directly inspect the exact byte offsets of Ethernet headers (14 bytes), IPv4 headers (20 bytes), and TCP
+headers (20 bytes) alongside standard Big-Endian network byte order formatting.
+"""
+
 import struct
 from pathlib import Path
 from src.core.pcap_util import PCAPExporter, compute_internet_checksum
 
 
 def test_compute_internet_checksum():
+    """
+    Validates the one's complement Internet Checksum calculation against standard RFC 1071 test vectors.
+
+    Args:
+        None.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Computes 16-bit integer checksum over raw byte sequences.
+
+    Failure Behavior:
+        Fails if checksum does not fit in 16 bits or if checksumming header including checksum does not yield 0 or 0xFFFF.
+    """
     # RFC 1071 example verification
     data = b"\x45\x00\x00\x3c\x1c\x46\x40\x00\x40\x06\x00\x00\xac\x10\x0a\x63\xac\x10\x0a\x0c"
     chk = compute_internet_checksum(data)
@@ -15,6 +61,21 @@ def test_compute_internet_checksum():
 
 
 def test_pcap_exporter_empty(tmp_path: Path):
+    """
+    Validates export of an empty PCAP buffer and verifies the 24-byte Libpcap global file header structure.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Serializes global header to in-memory bytes.
+
+    Failure Behavior:
+        Fails if length is not exactly 24 bytes, or magic number (0xA1B2C3D4) / version (2.4) are invalid.
+    """
     exporter = PCAPExporter()
     assert exporter.packet_count == 0
     pcap_bytes = exporter.export_to_bytes()
@@ -29,6 +90,21 @@ def test_pcap_exporter_empty(tmp_path: Path):
 
 
 def test_pcap_exporter_packets(tmp_path: Path):
+    """
+    Validates synthetic frame encapsulation (Ethernet II + IPv4 + TCP) and export into a binary .pcap file.
+
+    Args:
+        tmp_path: Pytest temporary directory fixture for writing test capture.
+
+    Returns:
+        None.
+
+    Side Effects:
+        Writes binary file test.pcap to disk.
+
+    Failure Behavior:
+        Fails if file byte count is deficient, ethertype != 0x0800, IP proto != 6, or port numbers mismatch.
+    """
     exporter = PCAPExporter(client_ip="192.168.1.100", server_ip="192.168.1.200", client_port=54321, server_port=2121)
     exporter.record_packet("tx", "HELLO|CS4S/2.0")
     exporter.record_packet("rx", "220 HELLO|CS4S/2.0")

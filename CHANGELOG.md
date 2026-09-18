@@ -76,5 +76,6 @@ and [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/sxnnyside-scholarships/client-server-4-students/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/sxnnyside-scholarships/client-server-4-students/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/sxnnyside-scholarships/client-server-4-students/releases/tag/v2.1.0
 [2.0.0]: https://github.com/sxnnyside-scholarships/client-server-4-students/releases/tag/v2.0.0

@@ -20,7 +20,7 @@ assignees: ""
 
 - OS:
 - Client-Server 4 Students version:
-- Python 3.14 / PyQt6: <!-- e.g. Rust 1.85, Node 20, Flutter 3.x -->
+- Python: <!-- e.g. Python 3.12, PyQt6 6.7 -->
 
 ## Additional context
 
